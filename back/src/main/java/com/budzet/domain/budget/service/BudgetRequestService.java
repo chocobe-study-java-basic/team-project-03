@@ -102,7 +102,7 @@ public class BudgetRequestService {
 
         if(budgetRequestResponse == null)
             throw new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND);
-        else if (budgetRequestResponse.userId() != user.getId())
+        else if (!budgetRequestResponse.userId().equals(user.getId()))
             throw new BusinessException(ErrorCode.NOT_BUDGET_REQUESTER);
         else{
             String status = budgetRequestResponse.status();
@@ -199,7 +199,7 @@ public class BudgetRequestService {
             throw new BusinessException(ErrorCode.NOT_MODIFYABLE);
         else if(room.getAvailableBudget() + budgetRequest.getRequestedAmount() < requestedAmount)
             throw new BusinessException(ErrorCode.REQUEST_AMOUNT_OVER_BUDGET);
-        else if (budgetRequest.getUser().getId() != user.getId())
+        else if (!budgetRequest.getUser().getId().equals(user.getId()))
             throw new BusinessException(ErrorCode.NOT_BUDGET_REQUESTER);
         else{
             if(budgetRequest.getStatus().equals(BudgetRequestType.APPROVE.name()))

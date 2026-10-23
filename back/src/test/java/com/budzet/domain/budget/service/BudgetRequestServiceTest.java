@@ -1,14 +1,17 @@
 package com.budzet.domain.budget.service;
 
+import com.budzet.domain.budget.dto.BudgetRequestResponse;
 import com.budzet.domain.budget.entity.BudgetRequest;
+import com.budzet.domain.budget.entity.BudgetRequestType;
 import com.budzet.domain.budget.repository.BudgetRequestRepository;
+import com.budzet.domain.room.entity.Authority;
 import com.budzet.domain.room.entity.Room;
+import com.budzet.domain.room.entity.UserRoomConnection;
 import com.budzet.domain.room.entity.UserRoomConnectionId;
 import com.budzet.domain.room.repository.RoomRepository;
 import com.budzet.domain.room.repository.UserRoomConnectionRepository;
 import com.budzet.domain.user.entity.User;
 import com.budzet.global.exception.BusinessException;
-import com.budzet.global.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,14 +20,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class) // Mockito 환경 구축
+@ExtendWith(MockitoExtension.class)
 class BudgetRequestServiceTest {
 
     @Mock
@@ -36,82 +39,436 @@ class BudgetRequestServiceTest {
     @Mock
     private UserRoomConnectionRepository userRoomConnectionRepository;
 
+    @Mock
+    private User user;
+
+    @Mock
+    private Room room;
+
+    @Mock
+    private BudgetRequest budgetRequest;
+
+    @Mock
+    private BudgetRequestResponse response;
+
+    @Mock
+    private UserRoomConnection userRoomConnection;
+
     @InjectMocks
     private BudgetRequestService budgetRequestService;
 
-    private User user;
-    private Room room;
-    private Long roomId;
-    private String reason;
-    private Long requestedAmount;
+    private final Long roomId = 10L;
+    private final Long userId = 1L;
+    private final Long requestId = 100L;
 
     @BeforeEach
     void setUp() {
-        roomId = 1L;
-        reason = "비품 구매";
-        requestedAmount = 50000L;
+        when(user.getId()).thenReturn(userId);
 
-        // 테스트용 가짜 객체 생성 및 스터빙 설정용 ID 할당
-        user = mock(User.class);
-        when(user.getId()).thenReturn(10L);
-
-        room = mock(Room.class);
+        lenient().when(userRoomConnectionRepository.existsById(
+                any(UserRoomConnectionId.class)
+        )).thenReturn(true);
     }
 
-    @Test
-    @DisplayName("성공: 유저가 방에 속해있고 신청 금액이 가용 예산 이내이면 예산 신청이 정상 등록된다.")
-    void budgetRequestRegistration_Success() {
-        // given
-        UserRoomConnectionId connectionId = new UserRoomConnectionId(user.getId(), roomId);
-        when(userRoomConnectionRepository.existsById(connectionId)).thenReturn(true);
-        when(roomRepository.findById(roomId)).thenReturn(Optional.of(room));
-        when(room.getAvailableBudget()).thenReturn(100000L); // 가용 예산 100,000원 (신청 금액 50,000원보다 많음)
+    private void mockRoom() {
+        when(roomRepository.findById(roomId))
+                .thenReturn(Optional.of(room));
+    }
 
-        // when & then
-        assertDoesNotThrow(() ->
-                budgetRequestService.budgetRequestRegistration(roomId, user, reason, requestedAmount)
+    private void mockAuthority(Authority authority) {
+        when(userRoomConnectionRepository.findByUser_IdAndRoom_Id(userId, roomId))
+                .thenReturn(Optional.of(userRoomConnection));
+        when(userRoomConnection.getAuthority()).thenReturn(authority);
+    }
+
+    private void mockBudgetRequest(String status) {
+        when(budgetRequestRepository.findByIdAndRoomId(requestId, roomId))
+                .thenReturn(Optional.of(budgetRequest));
+        when(budgetRequest.getStatus()).thenReturn(status);
+    }
+
+    // =========================
+    // Budget request registration
+    // =========================
+
+    @Test
+    @DisplayName("예산 신청 등록에 성공한다")
+    void registerBudgetRequest_success() {
+        mockRoom();
+        when(room.getAvailableBudget()).thenReturn(1000L);
+
+        budgetRequestService.budgetRequestRegistration(
+                roomId, user, "테스트 신청", 500L
         );
 
-        // 실제로 데이터베이스 저장 로직이 호출되었는지 검증
-        verify(budgetRequestRepository, times(1)).save(any(BudgetRequest.class));
+        verify(budgetRequestRepository).save(any(BudgetRequest.class));
     }
 
     @Test
-    @DisplayName("실패: 유저가 해당 방에 소속되어 있지 않으면 USER_NOT_JOINED_ROOM 예외가 발생한다.")
-    void budgetRequestRegistration_Fail_UserNotJoined() {
-        // given
-        UserRoomConnectionId connectionId = new UserRoomConnectionId(user.getId(), roomId);
-        when(userRoomConnectionRepository.existsById(connectionId)).thenReturn(false); // 방에 소속되지 않음
+    @DisplayName("신청 금액이 가용 예산을 초과하면 예외가 발생한다")
+    void registerBudgetRequest_exceedsAvailableBudget() {
+        mockRoom();
+        when(room.getAvailableBudget()).thenReturn(100L);
 
-        // when & then
-        assertThatThrownBy(() ->
-                budgetRequestService.budgetRequestRegistration(roomId, user, reason, requestedAmount)
-        )
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining(ErrorCode.USER_NOT_JOINED_ROOM.getMessage()); // 혹은 ErrorCode 비교로 변경 가능
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.budgetRequestRegistration(
+                        roomId, user, "예산 초과", 200L
+                )
+        );
 
-        // 예외가 터졌으므로 이후 로직(조회 및 저장)은 실행되지 않아야 함
-        verify(roomRepository, never()).findById(anyLong());
         verify(budgetRequestRepository, never()).save(any(BudgetRequest.class));
     }
 
+    // =========================
+    // Budget request retrieval
+    // =========================
+
     @Test
-    @DisplayName("실패: 신청 금액이 방의 가용 예산을 초과하면 REQUEST_AMOUNT_OVER_BUDGET 예외가 발생한다.")
-    void budgetRequestRegistration_Fail_AmountOverBudget() {
-        // given
-        UserRoomConnectionId connectionId = new UserRoomConnectionId(user.getId(), roomId);
-        when(userRoomConnectionRepository.existsById(connectionId)).thenReturn(true);
-        when(roomRepository.findById(roomId)).thenReturn(Optional.of(room));
-        when(room.getAvailableBudget()).thenReturn(30000L); // 가용 예산 30,000원 (신청 금액 50,000원보다 적음)
+    @DisplayName("예산 신청 목록을 조회한다")
+    void getBudgetRequestList_success() {
+        List<BudgetRequestResponse> expected = List.of(response);
+        when(budgetRequestRepository.findDtoByRoomId(roomId)).thenReturn(expected);
 
-        // when & then
-        assertThatThrownBy(() ->
-                budgetRequestService.budgetRequestRegistration(roomId, user, reason, requestedAmount)
-        )
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining(ErrorCode.REQUEST_AMOUNT_OVER_BUDGET.getMessage());
+        List<BudgetRequestResponse> actual =
+                budgetRequestService.getBudgetRequestList(roomId, user);
 
-        // 예외가 터졌으므로 저장 로직은 호출되지 않아야 함
-        verify(budgetRequestRepository, never()).save(any(BudgetRequest.class));
+        assertEquals(expected, actual);
+        verify(budgetRequestRepository).findDtoByRoomId(roomId);
+    }
+
+    @Test
+    @DisplayName("예산 신청 상세 정보를 조회한다")
+    void getBudgetRequest_success() {
+        when(budgetRequestRepository.findDtoById(roomId, requestId))
+                .thenReturn(response);
+
+        BudgetRequestResponse actual =
+                budgetRequestService.getBudgetRequest(roomId, user, requestId);
+
+        assertEquals(response, actual);
+    }
+
+    @Test
+    @DisplayName("방에 소속되지 않은 사용자는 예산 신청 목록을 조회할 수 없다")
+    void getBudgetRequestList_userNotInRoom() {
+        when(userRoomConnectionRepository.existsById(
+                any(UserRoomConnectionId.class)
+        )).thenReturn(false);
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.getBudgetRequestList(roomId, user)
+        );
+
+        verify(budgetRequestRepository, never()).findDtoByRoomId(anyLong());
+    }
+
+    // =========================
+    // Budget request deletion
+    // =========================
+
+    @Test
+    @DisplayName("예산 신청 삭제에 성공한다")
+    void deleteBudgetRequest_success() {
+        mockRoom();
+        when(budgetRequestRepository.findDtoById(roomId, requestId))
+                .thenReturn(response);
+        when(response.userId()).thenReturn(userId);
+        when(response.status()).thenReturn(BudgetRequestType.REQUEST.name());
+
+        budgetRequestService.deleteBudgetRequest(roomId, user, requestId);
+
+        verify(budgetRequestRepository).deleteById(requestId);
+        verify(room, never()).updateAvailableBudget(anyLong());
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 예산 신청은 삭제할 수 없다")
+    void deleteBudgetRequest_notRequester() {
+        mockRoom();
+        when(budgetRequestRepository.findDtoById(roomId, requestId))
+                .thenReturn(response);
+        when(response.userId()).thenReturn(2L);
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.deleteBudgetRequest(roomId, user, requestId)
+        );
+
+        verify(budgetRequestRepository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    @DisplayName("승인된 예산 신청을 삭제하면 가용 예산을 복구한다")
+    void deleteBudgetRequest_approvedRequest_restoresBudget() {
+        mockRoom();
+        when(budgetRequestRepository.findDtoById(roomId, requestId))
+                .thenReturn(response);
+        when(response.userId()).thenReturn(userId);
+        when(response.status()).thenReturn(BudgetRequestType.APPROVE.name());
+        when(response.requestedAmount()).thenReturn(300L);
+
+        budgetRequestService.deleteBudgetRequest(roomId, user, requestId);
+
+        verify(room).updateAvailableBudget(300L);
+        verify(budgetRequestRepository).deleteById(requestId);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 예산 신청은 삭제할 수 없다")
+    void deleteBudgetRequest_notFound() {
+        mockRoom();
+        when(budgetRequestRepository.findDtoById(roomId, requestId)).thenReturn(null);
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.deleteBudgetRequest(roomId, user, requestId)
+        );
+
+        verify(budgetRequestRepository, never()).deleteById(anyLong());
+    }
+
+    // =========================
+    // Budget request approval
+    // =========================
+
+    @Test
+    @DisplayName("예산 신청 승인에 성공한다")
+    void approveBudgetRequest_success() {
+        mockAuthority(Authority.OWNER);
+        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+        mockRoom();
+        when(budgetRequest.getRequestedAmount()).thenReturn(200L);
+        when(room.getAvailableBudget()).thenReturn(1000L);
+
+        budgetRequestService.approveBudgetRequest(roomId, user, requestId);
+
+        verify(room).updateAvailableBudget(-200L);
+        verify(budgetRequest).approveRequest();
+    }
+
+    @Test
+    @DisplayName("일반 회원은 예산 신청을 승인할 수 없다")
+    void approveBudgetRequest_memberForbidden() {
+        mockAuthority(Authority.MEMBER);
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.approveBudgetRequest(roomId, user, requestId)
+        );
+
+        verify(budgetRequestRepository, never())
+                .findByIdAndRoomId(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("이미 승인된 예산 신청은 다시 승인할 수 없다")
+    void approveBudgetRequest_alreadyApproved() {
+        mockAuthority(Authority.OWNER);
+        mockBudgetRequest(BudgetRequestType.APPROVE.name());
+        mockRoom();
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.approveBudgetRequest(roomId, user, requestId)
+        );
+
+        verify(budgetRequest, never()).approveRequest();
+        verify(room, never()).updateAvailableBudget(anyLong());
+    }
+
+    @Test
+    @DisplayName("정산된 예산 신청은 승인할 수 없다")
+    void approveBudgetRequest_settledRequest() {
+        mockAuthority(Authority.OWNER);
+        mockBudgetRequest(BudgetRequestType.SETTLEMENT.name());
+        mockRoom();
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.approveBudgetRequest(roomId, user, requestId)
+        );
+
+        verify(budgetRequest, never()).approveRequest();
+        verify(room, never()).updateAvailableBudget(anyLong());
+    }
+
+    @Test
+    @DisplayName("가용 예산이 부족하면 예산 신청을 승인할 수 없다")
+    void approveBudgetRequest_insufficientBudget() {
+        mockAuthority(Authority.OWNER);
+        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+        mockRoom();
+        when(budgetRequest.getRequestedAmount()).thenReturn(200L);
+        when(room.getAvailableBudget()).thenReturn(100L);
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.approveBudgetRequest(roomId, user, requestId)
+        );
+
+        verify(budgetRequest, never()).approveRequest();
+        verify(room, never()).updateAvailableBudget(anyLong());
+    }
+
+    // =========================
+    // Budget request rejection
+    // =========================
+
+    @Test
+    @DisplayName("예산 신청 반려에 성공한다")
+    void rejectBudgetRequest_success() {
+        mockAuthority(Authority.OWNER);
+        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+
+        budgetRequestService.rejectBudgetRequest(
+                roomId, user, requestId, "사유 불충분"
+        );
+
+        verify(budgetRequest).rejectRequest("사유 불충분");
+    }
+
+    @Test
+    @DisplayName("일반 회원은 예산 신청을 반려할 수 없다")
+    void rejectBudgetRequest_memberForbidden() {
+        mockAuthority(Authority.MEMBER);
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.rejectBudgetRequest(
+                        roomId, user, requestId, "반려 사유"
+                )
+        );
+
+        verify(budgetRequestRepository, never())
+                .findByIdAndRoomId(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("이미 반려된 예산 신청은 다시 반려할 수 없다")
+    void rejectBudgetRequest_alreadyRejected() {
+        mockAuthority(Authority.OWNER);
+        mockBudgetRequest(BudgetRequestType.REJECT.name());
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.rejectBudgetRequest(
+                        roomId, user, requestId, "반려 사유"
+                )
+        );
+
+        verify(budgetRequest, never()).rejectRequest(anyString());
+    }
+
+    @Test
+    @DisplayName("정산된 예산 신청은 반려할 수 없다")
+    void rejectBudgetRequest_settledRequest() {
+        mockAuthority(Authority.OWNER);
+        mockBudgetRequest(BudgetRequestType.SETTLEMENT.name());
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.rejectBudgetRequest(
+                        roomId, user, requestId, "반려 사유"
+                )
+        );
+
+        verify(budgetRequest, never()).rejectRequest(anyString());
+    }
+
+    // =========================
+    // Budget request modification
+    // =========================
+
+    @Test
+    @DisplayName("예산 신청 수정에 성공한다")
+    void modifyBudgetRequest_success() {
+        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+        mockRoom();
+        when(budgetRequest.getRequestedAmount()).thenReturn(100L);
+        when(budgetRequest.getUser()).thenReturn(user);
+        when(room.getAvailableBudget()).thenReturn(500L);
+
+        budgetRequestService.modifyBudgetRequest(
+                roomId, user, requestId, "수정된 사유", 200L
+        );
+
+        verify(budgetRequest).modifyRequest("수정된 사유", 200L);
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 예산 신청은 수정할 수 없다")
+    void modifyBudgetRequest_notRequester() {
+        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+        mockRoom();
+
+        User otherUser = mock(User.class);
+        when(otherUser.getId()).thenReturn(2L);
+        when(budgetRequest.getRequestedAmount()).thenReturn(100L);
+        when(budgetRequest.getUser()).thenReturn(otherUser);
+        when(room.getAvailableBudget()).thenReturn(500L);
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.modifyBudgetRequest(
+                        roomId, user, requestId, "수정 사유", 200L
+                )
+        );
+
+        verify(budgetRequest, never()).modifyRequest(anyString(), anyLong());
+    }
+
+    @Test
+    @DisplayName("정산된 예산 신청은 수정할 수 없다")
+    void modifyBudgetRequest_settledRequest() {
+        mockBudgetRequest(BudgetRequestType.SETTLEMENT.name());
+        mockRoom();
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.modifyBudgetRequest(
+                        roomId, user, requestId, "수정 사유", 200L
+                )
+        );
+
+        verify(budgetRequest, never()).modifyRequest(anyString(), anyLong());
+    }
+
+    @Test
+    @DisplayName("신청 금액이 가용 예산을 초과하면 수정할 수 없다")
+    void modifyBudgetRequest_exceedsAvailableBudget() {
+        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+        mockRoom();
+
+        when(budgetRequest.getRequestedAmount()).thenReturn(100L);
+        when(room.getAvailableBudget()).thenReturn(50L);
+
+        assertThrows(
+                BusinessException.class,
+                () -> budgetRequestService.modifyBudgetRequest(
+                        roomId, user, requestId, "수정 사유", 200L
+                )
+        );
+
+        verify(budgetRequest, never()).modifyRequest(anyString(), anyLong());
+    }
+
+    @Test
+    @DisplayName("승인된 예산 신청의 금액을 수정하면 가용 예산을 재계산한다")
+    void modifyBudgetRequest_approvedRequest_updatesAvailableBudget() {
+        mockBudgetRequest(BudgetRequestType.APPROVE.name());
+        mockRoom();
+        when(budgetRequest.getRequestedAmount()).thenReturn(100L);
+        when(budgetRequest.getUser()).thenReturn(user);
+        when(room.getAvailableBudget()).thenReturn(500L);
+
+        budgetRequestService.modifyBudgetRequest(
+                roomId, user, requestId, "금액 변경", 200L
+        );
+
+        // 신청 금액이 100에서 200으로 증가하므로 가용 예산을 100 감소시킨다.
+        verify(room).updateAvailableBudget(-100L);
+        verify(budgetRequest).modifyRequest("금액 변경", 200L);
     }
 }
