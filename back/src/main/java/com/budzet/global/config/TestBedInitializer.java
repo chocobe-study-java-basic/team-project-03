@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-@Profile("!prod")
+@Profile("!prod & !test")
 @RequiredArgsConstructor
 public class TestBedInitializer {
 
