@@ -138,7 +138,7 @@ public class BudgetRequestService {
 
 
         BudgetRequestType status = budgetRequest.getStatus();
-        if(BudgetRequestType.APPROVE.equals(status) || BudgetRequestType.SETTLEMENT.equals(status))
+        if(!BudgetRequestType.REQUEST.equals(status))
             throw new BusinessException(ErrorCode.NOT_APPROVABLE);
         else if(room.getAvailableBudget() < budgetRequest.getRequestedAmount())
             throw new BusinessException(ErrorCode.BUDGET_EXCEEDED);
@@ -169,7 +169,7 @@ public class BudgetRequestService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND));
 
         BudgetRequestType status = budgetRequest.getStatus();
-        if(BudgetRequestType.REJECT.equals(status) || BudgetRequestType.SETTLEMENT.equals(status))
+        if(!BudgetRequestType.REQUEST.equals(status))
             throw new BusinessException(ErrorCode.NOT_REJECTABLE);
         else
             budgetRequest.rejectRequest(rejectReason);

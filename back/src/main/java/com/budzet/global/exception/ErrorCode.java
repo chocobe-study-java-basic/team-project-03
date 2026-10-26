@@ -35,9 +35,9 @@ public enum ErrorCode {
     NOT_BUDGET_REQUESTER(HttpStatus.FORBIDDEN, "예산 신청자가 아닙니다."),
     ROOM_MANAGER_REQUIRED(HttpStatus.FORBIDDEN, "모임을 관리할 권한이 없습니다."),
     INVALID_AUTHORITY(HttpStatus.BAD_REQUEST,"변경할 수 없는 권한입니다."),
-    NOT_APPROVABLE(HttpStatus.FORBIDDEN, "정산, 승인 상태의 신청은 승인할 수 없습니다."),
-    NOT_REJECTABLE(HttpStatus.FORBIDDEN, "정산, 반려 상태의 신청은 반려할 수 없습니다."),
-    NOT_MODIFYABLE(HttpStatus.FORBIDDEN, "정산 상태의 신청은 수정할 수 없습니다."),
+    NOT_APPROVABLE(HttpStatus.CONFLICT, "정산, 반려, 승인 상태의 신청은 승인할 수 없습니다."),
+    NOT_REJECTABLE(HttpStatus.CONFLICT, "정산, 반려, 승인 상태의 신청은 반려할 수 없습니다."),
+    NOT_MODIFYABLE(HttpStatus.CONFLICT, "정산 상태의 신청은 수정할 수 없습니다."),
     LOCKED_RESOURCE(HttpStatus.TOO_MANY_REQUESTS,"현재 다른 요청이 처리 중입니다. 잠시 후 다시 시도해 주세요.");
 
     private final HttpStatus status;
