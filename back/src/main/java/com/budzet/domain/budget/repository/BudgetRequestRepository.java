@@ -2,7 +2,9 @@ package com.budzet.domain.budget.repository;
 
 import com.budzet.domain.budget.dto.BudgetRequestResponse;
 import com.budzet.domain.budget.entity.BudgetRequest;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -40,6 +42,7 @@ public interface BudgetRequestRepository extends JpaRepository<BudgetRequest, Lo
      * @param roomId
      * @return 예산신청 단일항목
      */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<BudgetRequest> findByIdAndRoomId(Long id, Long roomId);
 
 }

@@ -132,10 +132,8 @@ public class BudgetRequestService {
         BudgetRequest budgetRequest = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND));
 
-        Room room = this.roomRepository.findById(roomId)
+        Room room = roomRepository.findByWithLock(roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
-
-
 
         BudgetRequestType status = budgetRequest.getStatus();
         if(!BudgetRequestType.REQUEST.equals(status))
