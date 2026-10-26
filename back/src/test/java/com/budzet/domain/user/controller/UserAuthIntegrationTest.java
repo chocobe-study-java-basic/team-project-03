@@ -2,6 +2,7 @@ package com.budzet.domain.user.controller;
 
 import com.budzet.domain.user.dto.UserJoinRequest;
 import com.budzet.domain.user.dto.UserLoginRequest;
+import com.budzet.domain.user.dto.UserProfileUpdateRequest;
 import jakarta.servlet.http.Cookie;
 import com.budzet.domain.user.entity.User;
 import com.budzet.domain.user.repository.UserRepository;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.stream.Stream;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -152,6 +154,7 @@ class UserAuthIntegrationTest {
         assertEquals(user.getPassword(), savedUser.getPassword());
     }
 
+    // 내 정보
     @Test
     @DisplayName("로그인으로 발급받은 Access Token 쿠키로 내 정보를 조회한다")
     void me_withLoginCookie_success() throws Exception {
@@ -185,6 +188,76 @@ class UserAuthIntegrationTest {
         mockMvc.perform(get("/users/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    @DisplayName("인증된 회원은 정보를 수정할 수 있고 변경 내용이 DB에 반영된다")
+    void updateProfile_success() throws Exception {
+        // given
+        User user = createMember();
+        Cookie accessCookie = login().getResponse().getCookie("accessToken");
+        assertNotNull(accessCookie);
+
+        String newName = "변경된 이름";
+
+        // when & then
+        mockMvc.perform(patch("/users/me")
+                        .cookie(accessCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new UserProfileUpdateRequest(newName)
+                        )))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value(200))
+                .andExpect(jsonPath("$.message").value("내 정보가 수정되었습니다."))
+                .andExpect(jsonPath("$.data.id").value(user.getId()))
+                .andExpect(jsonPath("$.data.email").value(email))
+                .andExpect(jsonPath("$.data.name").value(newName));
+
+        // DB에 실제로 변경되었는지 확인
+        User updatedUser = storedMember();
+
+        assertEquals(newName, updatedUser.getName());
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidProfileNames")
+    @DisplayName("잘못된 이름으로 수정 요청 시 400을 반환하고 기존 이름을 유지한다")
+    void updateProfile_invalidName(String name, boolean omitted) throws Exception {
+        // given
+        createMember();
+        Cookie accessCookie = login().getResponse().getCookie("accessToken");
+        assertNotNull(accessCookie);
+
+        String originalName = storedMember().getName();
+
+        Map<String, Object> body = new HashMap<>();
+        if (!omitted) {
+            body.put("name", name);
+        }
+
+        // when & then
+        mockMvc.perform(patch("/users/me")
+                        .cookie(accessCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value(400))
+                .andExpect(jsonPath("$.data[*].field",
+                        org.hamcrest.Matchers.hasItem("name")))
+                .andExpect(header().doesNotExist("Set-Cookie"));
+
+        // 검증 실패 후에도 DB의 이름이 유지되는지 확인
+        assertEquals(originalName, storedMember().getName());
+    }
+
+    static Stream<Arguments> invalidProfileNames() {
+        return Stream.of(
+                Arguments.of("", false),
+                Arguments.of("   ", false),
+                Arguments.of(null, false),
+                Arguments.of(null, true)
+        );
     }
 
     // 토큰 재발급
