@@ -46,6 +46,7 @@ public class InviteController {
 
     @Operation(
             summary = "초대 링크 목록 조회",
+            description = "모임장 권한 필요",
             security = @SecurityRequirement(name = "BearerAuth")
     )
     @GetMapping("/{roomId}/invites")
@@ -53,7 +54,7 @@ public class InviteController {
             @PathVariable Long roomId
     ) {
         List<InviteResponse> response =
-                inviteService.getInvites(roomId);
+                inviteService.getInvites(roomId, rq.getActor().getId());
 
         return ApiResponse.success(
                 HttpStatus.OK,

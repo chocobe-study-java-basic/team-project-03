@@ -293,6 +293,7 @@ class InviteServiceTest {
     @Test
     void getInvites() {
         Long roomId = 1L;
+        mockInviteOwner(roomId);
 
         Invite invite1 = mock(Invite.class);
         Invite invite2 = mock(Invite.class);
@@ -310,7 +311,7 @@ class InviteServiceTest {
         when(invite2.getExpireAt()).thenReturn(expireAt2);
 
         List<InviteResponse> result =
-                inviteService.getInvites(roomId);
+                inviteService.getInvites(roomId, 1L);
 
         assertThat(result).hasSize(2);
 
@@ -330,15 +331,22 @@ class InviteServiceTest {
     @Test
     void getInvitesWhenEmpty() {
         Long roomId = 1L;
+        mockInviteOwner(roomId);
 
         when(inviteRepository.findAllByRoom_Id(roomId))
                 .thenReturn(List.of());
 
         List<InviteResponse> result =
-                inviteService.getInvites(roomId);
+                inviteService.getInvites(roomId, 1L);
 
         assertThat(result).isEmpty();
 
         verify(inviteRepository).findAllByRoom_Id(roomId);
+    }
+    private void mockInviteOwner(Long roomId) {
+        UserRoomConnection connection = mock(UserRoomConnection.class);
+        when(userRoomConnectionRepository.findByUser_IdAndRoom_Id(1L, roomId))
+                .thenReturn(Optional.of(connection));
+        when(connection.getAuthority()).thenReturn(Authority.OWNER);
     }
 }

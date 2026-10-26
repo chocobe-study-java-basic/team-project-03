@@ -30,6 +30,9 @@ class UserRoomConnectionControllerTest {
 
     @Test
     void 멤버_권한_조회() {
+        User actor = mock(User.class);
+        when(rq.getActor()).thenReturn(actor);
+        when(actor.getId()).thenReturn(3L);
         // given
         Long roomId = 1L;
         Long userId = 2L;
@@ -37,7 +40,7 @@ class UserRoomConnectionControllerTest {
         UserRoomConnection connection =
                 mock(UserRoomConnection.class);
 
-        when(service.getConnection(roomId, userId))
+        when(service.getConnection(roomId, 3L, userId))
                 .thenReturn(connection);
 
         when(connection.getAuthority())
@@ -58,11 +61,14 @@ class UserRoomConnectionControllerTest {
                 .isEqualTo("MEMBER");
 
         verify(service)
-                .getConnection(roomId, userId);
+                .getConnection(roomId, 3L, userId);
     }
 
     @Test
     void 멤버_목록_조회() {
+        User actor = mock(User.class);
+        when(rq.getActor()).thenReturn(actor);
+        when(actor.getId()).thenReturn(3L);
         // given
         Long roomId = 1L;
 
@@ -72,7 +78,7 @@ class UserRoomConnectionControllerTest {
         MemberResponse member2 =
                 mock(MemberResponse.class);
 
-        when(service.getMembers(roomId))
+        when(service.getMembers(roomId, 3L))
                 .thenReturn(List.of(member1, member2));
 
         // when
@@ -90,7 +96,7 @@ class UserRoomConnectionControllerTest {
                 .hasSize(2);
 
         verify(service)
-                .getMembers(roomId);
+                .getMembers(roomId, 3L);
     }
 
     @Test
