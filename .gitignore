@@ -11,3 +11,6 @@ agents
 
 # macOS
 .DS_Store
+
+# Local monitoring credentials
+monitoring/secrets/

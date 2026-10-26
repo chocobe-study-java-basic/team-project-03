@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 // 별도 프로필 없이 실제 개발 환경 조건을 적용하고 DB·JWT 값만 테스트용으로 대체한다.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "spring.profiles.active=",
+        "custom.monitoring.password=",
         "spring.config.import=classpath:application-test.yaml",
         "spring.datasource.url=jdbc:h2:mem:actuator_dev;MODE=MySQL;NON_KEYWORDS=USER;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
 })
@@ -87,12 +88,12 @@ class ActuatorIntegrationTest {
     }
 
     @Test
-    @DisplayName("프로필을 지정하지 않은 개발 환경에서 상태와 지표만 노출한다")
+    @DisplayName("프로필을 지정하지 않은 개발 환경에서 허용한 관리 엔드포인트를 노출한다")
     void developmentEndpointsEnabledWithoutProfile() {
         assertThat(environment.getActiveProfiles()).isEmpty();
         assertThat(endpointsSupplier.getEndpoints())
                 .extracting(endpoint -> endpoint.getEndpointId().toString())
-                .containsExactlyInAnyOrder("health", "metrics");
+                .containsExactlyInAnyOrder("health", "metrics", "prometheus");
     }
 
     @Test
@@ -143,15 +144,26 @@ class ActuatorIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/actuator/env", "/actuator/beans", "/actuator/prometheus"})
+    @ValueSource(strings = {"/actuator/env", "/actuator/beans"})
     @DisplayName("허용하지 않은 관리 엔드포인트는 로그인해도 노출되지 않는다")
     void otherEndpointsNotExposed(String path) throws Exception {
         assertThat(endpointsSupplier.getEndpoints())
                 .extracting(endpoint -> endpoint.getEndpointId().toString())
-                .containsExactlyInAnyOrder("health", "metrics");
+                .containsExactlyInAnyOrder("health", "metrics", "prometheus");
         // 미등록 경로의 오류 디스패치도 기존 Security 설정을 거친다.
         // 401/404와 별개로 실제 노출 목록에 해당 엔드포인트가 없는지 위에서 검증한다.
         assertThat(get(path, accessToken).statusCode()).isIn(401, 404);
+    }
+
+    @Test
+    @DisplayName("수집 비밀번호 미설정 시 서버는 실행되지만 JWT와 Basic 모두 수집 접근을 할 수 없다")
+    void prometheusDisabledWithoutCredentials() throws Exception {
+        assertThat(get("/actuator/prometheus", accessToken).statusCode()).isEqualTo(401);
+        String basic = java.util.Base64.getEncoder().encodeToString(
+                "prometheus:arbitrary-password".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        HttpResponse<String> response = client.send(HttpRequest.newBuilder(uri("/actuator/prometheus"))
+                .header("Authorization", "Basic " + basic).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(401);
     }
 
     private JsonNode roomMetric() throws Exception {

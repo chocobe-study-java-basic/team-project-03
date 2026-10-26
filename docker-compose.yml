@@ -15,6 +15,21 @@ services:
       timeout: 5s
       retries: 10
 
+  prometheus:
+    image: prom/prometheus:v3.13.5
+    profiles: [monitoring]
+    ports:
+      - "127.0.0.1:9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=3d
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    secrets:
+      - prometheus-password
+
 #  back:
 #    build:
 #      context: ./back
@@ -32,3 +47,8 @@ services:
 
 volumes:
   mysql-data:
+  prometheus-data:
+
+secrets:
+  prometheus-password:
+    file: ./monitoring/secrets/prometheus-password

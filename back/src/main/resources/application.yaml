@@ -55,7 +55,13 @@ management:
       show-details: never
     metrics:
       access: read-only
+    prometheus:
+      access: read-only
   endpoints:
     web:
       exposure:
-        include: health,metrics
+        include: health,metrics,prometheus
+
+custom:
+  monitoring:
+    password: ${PROMETHEUS_PASSWORD:}
