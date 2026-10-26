@@ -13,15 +13,12 @@ export default function CreateInvitePage() {
 }
 
 function CreateInviteContent() {
-  // const searchParams = useSearchParams();
+  const { roomId } = useParams<{ roomId: string }>();
+  const numericRoomId = Number(roomId);
 
-  // const roomIdParam = searchParams.get("roomId");
-  // const roomId = roomIdParam ? Number(roomIdParam) : null;
-  const { roomId } = useParams()
-
-  if (!roomId || Number.isNaN(roomId)) {
+  if (!Number.isSafeInteger(numericRoomId) || numericRoomId <= 0) {
     return (
-        <main className="w-full max-w-4xl">
+        <main className="mx-auto w-full max-w-3xl">
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
             <h1 className="font-bold text-red-700">
               모임 정보가 없습니다.
@@ -52,7 +49,7 @@ function CreateInviteContent() {
             초대 링크
           </h2>
 
-          <CreateInviteButton roomId={Number(roomId ?? 0)} />
+          <CreateInviteButton roomId={numericRoomId} />
         </section>
 
         <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
@@ -87,7 +84,7 @@ function CreateInviteContent() {
             </span>
 
               <p className="pt-0.5 text-sm text-zinc-600">
-                멤버가 링크를 클릭하면 바로 모임에 참여할 수 있어요.
+                멤버가 링크를 열고 로그인한 뒤 참여하면 완료돼요.
               </p>
             </div>
           </div>

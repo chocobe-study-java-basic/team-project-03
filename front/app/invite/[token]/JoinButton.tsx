@@ -1,43 +1,59 @@
 "use client";
-
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { joinRoom } from "@/app/lib/api/inviteApi";
+import { ApiError } from "@/app/lib/api/types";
 
-import { joinRoom } from '@/app/lib/api/inviteApi';
-
-interface JoinButtonProps {
-  token: string;
-}
-
-export default function JoinButton({ token }: JoinButtonProps) {
+export default function JoinButton({ token }: { token: string }) {
   const router = useRouter();
   const [joining, setJoining] = useState(false);
-
-  const handleJoin = async () => {
+  const [error, setError] = useState<string | null>(null);
+  const [alreadyJoined, setAlreadyJoined] = useState(false);
+  async function join() {
+    setJoining(true);
+    setError(null);
     try {
-      setJoining(true);
-      const joinedRoom = await joinRoom(token);
-      router.replace(`/rooms/${joinedRoom.roomId}/dashboard`);
+      const room = await joinRoom(token);
+      router.replace("/rooms/" + room.roomId + "/dashboard");
     } catch (error) {
-      alert(
+      setAlreadyJoined(error instanceof ApiError && error.status === 409);
+      setError(
         error instanceof Error
           ? error.message
-          : "모임 참여에 실패했습니다.",
+          : "모임에 참여하지 못했어요. 다시 시도해 주세요.",
       );
-      router.replace("/");
     } finally {
       setJoining(false);
     }
-  };
-
+  }
   return (
-    <button
-      type="button"
-      onClick={handleJoin}
-      disabled={joining}
-      className="mt-6 w-full rounded-xl bg-black py-3 font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      {joining ? "참여 중..." : "모임 참여하기"}
-    </button>
+    <div className="mt-6">
+      {error && (
+        <p
+          role="alert"
+          className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800"
+        >
+          {error}
+        </p>
+      )}
+      {alreadyJoined ? (
+        <Link
+          href="/rooms"
+          className="block rounded-xl bg-indigo-600 py-3 text-center text-sm font-semibold text-white"
+        >
+          참여 중인 모임 보기
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={join}
+          disabled={joining}
+          className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {joining ? "모임에 참여하는 중…" : "초대 수락하고 참여하기"}
+        </button>
+      )}
+    </div>
   );
 }

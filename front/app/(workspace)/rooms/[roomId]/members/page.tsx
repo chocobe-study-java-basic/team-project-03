@@ -1,5 +1,10 @@
 "use client";
 
+
+import { notify } from "@/app/components/common/Feedback";
+import Link from "next/link";
+import ConfirmDialog from "@/app/components/common/ConfigmDialog/ConfirmDialog";
+import { getMe } from "@/app/lib/api/userApi";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
@@ -27,6 +32,9 @@ type ConfirmState = {
 export default function MembersPage() {
     const { roomId } = useParams<{ roomId: string }>();
 
+    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+    const [query, setQuery] = useState("");
+    const [roleFilter, setRoleFilter] = useState("ALL");
     const [members, setMembers] = useState<Member[] | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +51,8 @@ export default function MembersPage() {
 
         const loadMembers = async () => {
             try {
-                const data = await getMembers(roomIdNumber);
+                const [data, user] = await Promise.all([getMembers(roomIdNumber), getMe()]);
+                setCurrentUserId(user.id);
 
                 setMembers(data);
                 setError(null);
@@ -55,6 +64,11 @@ export default function MembersPage() {
 
         void loadMembers();
     }, [roomId, roomIdNumber]);
+
+    const currentMember = members?.find(member => member.userId === currentUserId);
+    const isOwner = currentMember?.authority === "OWNER";
+    const canManage = isOwner || currentMember?.authority === "OPERATOR";
+    const visibleMembers = members?.filter(member => member.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()) && (roleFilter === "ALL" || member.authority === roleFilter)) ?? [];
 
     const getAuthorityLabel = (authority: Member["authority"]) => {
         switch (authority) {
@@ -179,7 +193,7 @@ export default function MembersPage() {
         } catch (error) {
             console.error(error);
 
-            alert(
+            notify(
                 error instanceof Error
                     ? error.message
                     : "요청 처리에 실패했습니다.",
@@ -213,15 +227,7 @@ export default function MembersPage() {
                     </p>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => {
-                        alert("멤버 초대 기능은 준비 중입니다.");
-                    }}
-                    className="text-sm font-semibold text-indigo-600 transition hover:text-indigo-700"
-                >
-                    + 멤버 초대
-                </button>
+                {isOwner && <Link href={`/rooms/${roomId}/invite/create`} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">+ 멤버 초대</Link>}
             </div>
 
             {/* 로딩 */}
@@ -241,8 +247,11 @@ export default function MembersPage() {
             {/* 멤버 목록 */}
             {members !== null && !error && (
                 <>
+                    <div className="mb-5 flex flex-wrap gap-3"><label className="min-w-0 flex-1"><span className="sr-only">멤버 이름 검색</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="멤버 이름으로 검색" className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm" /></label><label><span className="sr-only">멤버 권한 필터</span><select value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm"><option value="ALL">모든 권한</option><option value="OWNER">방장</option><option value="OPERATOR">운영자</option><option value="MEMBER">멤버</option></select></label></div>
+                    <p aria-live="polite" className="mb-3 text-xs text-zinc-500">{visibleMembers.length}명의 멤버</p>
+                    {visibleMembers.length === 0 && <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center text-sm text-zinc-500">조건에 맞는 멤버가 없어요. 검색어나 권한 필터를 바꿔 보세요.</div>}
                     <div className="space-y-3">
-                        {members.map((member) => (
+                        {visibleMembers.map((member) => (
                             <div
                                 key={member.userId}
                                 className="relative flex items-center rounded-2xl border border-zinc-200 bg-white px-6 py-5"
@@ -277,12 +286,12 @@ export default function MembersPage() {
                                     </div>
 
                                     <p className="mt-1 text-sm text-zinc-400">
-                                        User ID #{member.userId}
+                                        {member.userId === currentUserId ? "내 계정" : "함께하는 멤버"}
                                     </p>
                                 </div>
 
                                 {/* 더보기 */}
-                                <div className="relative">
+                                {canManage && member.authority !== "OWNER" && member.userId !== currentUserId && <div className="relative">
                                     <button
                                         type="button"
                                         aria-label={`${member.name} 멤버 메뉴`}
@@ -304,6 +313,7 @@ export default function MembersPage() {
                                         member.userId && (
                                             <MemberActionMenu
                                                 member={member}
+                                                isOwner={isOwner}
                                                 onPromote={() =>
                                                     openConfirm(
                                                         "PROMOTE",
@@ -330,7 +340,7 @@ export default function MembersPage() {
                                                 }
                                             />
                                         )}
-                                </div>
+                                </div>}
                             </div>
                         ))}
                     </div>
@@ -355,7 +365,7 @@ export default function MembersPage() {
                     </div>
 
                     {/* 모임 나가기 */}
-                    <div className="mt-8 border-t border-zinc-200 pt-6">
+                    {!isOwner && <div className="mt-8 border-t border-zinc-200 pt-6">
                         <button
                             type="button"
                             onClick={() =>
@@ -365,7 +375,7 @@ export default function MembersPage() {
                         >
                             모임 나가기
                         </button>
-                    </div>
+                    </div>}
                 </>
             )}
 
@@ -384,12 +394,14 @@ export default function MembersPage() {
 
 function MemberActionMenu({
                               member,
+                              isOwner,
                               onPromote,
                               onDemote,
                               onKick,
                               onDelegateOwner,
                           }: {
     member: Member;
+    isOwner: boolean;
     onPromote: () => void;
     onDemote: () => void;
     onKick: () => void;
@@ -397,7 +409,7 @@ function MemberActionMenu({
 }) {
     return (
         <div className="absolute right-0 top-11 z-20 w-44 overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
-            {member.authority === "MEMBER" && (
+            {isOwner && member.authority === "MEMBER" && (
                 <button
                     type="button"
                     onClick={onPromote}
@@ -407,7 +419,7 @@ function MemberActionMenu({
                 </button>
             )}
 
-            {member.authority === "OPERATOR" && (
+            {isOwner && member.authority === "OPERATOR" && (
                 <button
                     type="button"
                     onClick={onDemote}
@@ -427,7 +439,7 @@ function MemberActionMenu({
                 </button>
             )}
 
-            {member.authority !== "OWNER" && (
+            {isOwner && member.authority !== "OWNER" && (
                 <button
                     type="button"
                     onClick={onDelegateOwner}
@@ -500,50 +512,7 @@ function ConfirmModal({
             break;
     }
 
-    return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-            onMouseDown={(event) => {
-                if (event.target === event.currentTarget) {
-                    onCancel();
-                }
-            }}
-        >
-            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-                <h2 className="text-lg font-bold text-zinc-900">
-                    {title}
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-zinc-500">
-                    {description}
-                </p>
-
-                <div className="mt-6 flex gap-2">
-                    <button
-                        type="button"
-                        disabled={loading}
-                        onClick={onCancel}
-                        className="flex-1 rounded-xl bg-zinc-100 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-200 disabled:opacity-50"
-                    >
-                        취소
-                    </button>
-
-                    <button
-                        type="button"
-                        disabled={loading}
-                        onClick={onConfirm}
-                        className={`flex-1 rounded-xl py-3 text-sm font-semibold text-white transition disabled:opacity-50 ${
-                            danger
-                                ? "bg-red-500 hover:bg-red-600"
-                                : "bg-indigo-600 hover:bg-indigo-700"
-                        }`}
-                    >
-                        {loading ? "처리 중..." : confirmText}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
+    return <ConfirmDialog open={Boolean(state)} title={title} description={description} confirmLabel={confirmText} variant={danger ? "danger" : "default"} loading={loading} onCancel={onCancel} onConfirm={onConfirm} />;
 }
 
 function StatCard({
