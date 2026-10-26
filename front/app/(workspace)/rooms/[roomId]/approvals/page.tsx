@@ -1,8 +1,11 @@
 "use client";
 
+
+import { notify } from "@/app/components/common/Feedback";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
+import ConfirmDialog from "@/app/components/common/ConfigmDialog/ConfirmDialog";
 import { getBudget } from "@/app/lib/api/budgetApi";
 import {
     approveBudgetRequest,
@@ -21,6 +24,7 @@ export default function ApprovalsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const [approveTarget, setApproveTarget] = useState<BudgetRequest | null>(null);
     const [processingId, setProcessingId] = useState<number | null>(null);
 
     const [rejectTarget, setRejectTarget] =
@@ -107,20 +111,14 @@ export default function ApprovalsPage() {
      * 승인
      */
     const handleApprove = async (requestId: number) => {
-        const confirmed = window.confirm(
-            "이 예산 신청을 승인하시겠습니까?",
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
+        if (processingId !== null) return;
         try {
             setProcessingId(requestId);
 
             await approveBudgetRequest(roomId, requestId);
+            setApproveTarget(null);
 
-            alert("예산 신청이 승인되었습니다.");
+            notify("예산 신청이 승인되었습니다.");
 
             await loadApprovalData();
         } catch (error) {
@@ -129,7 +127,7 @@ export default function ApprovalsPage() {
                 error,
             );
 
-            alert(
+            notify(
                 error instanceof Error
                     ? error.message
                     : "예산 신청 승인에 실패했습니다.",
@@ -170,12 +168,12 @@ export default function ApprovalsPage() {
         const reason = rejectReason.trim();
 
         if (!reason) {
-            alert("반려 사유를 입력해주세요.");
+            notify("반려 사유를 입력해주세요.");
             return;
         }
 
         if (reason.length > 20) {
-            alert("반려 사유는 20자 이하로 입력해주세요.");
+            notify("반려 사유는 20자 이하로 입력해주세요.");
             return;
         }
 
@@ -188,7 +186,7 @@ export default function ApprovalsPage() {
                 reason,
             );
 
-            alert("예산 신청이 반려되었습니다.");
+            notify("예산 신청이 반려되었습니다.");
 
             setRejectTarget(null);
             setRejectReason("");
@@ -200,7 +198,7 @@ export default function ApprovalsPage() {
                 error,
             );
 
-            alert(
+            notify(
                 error instanceof Error
                     ? error.message
                     : "예산 신청 반려에 실패했습니다.",
@@ -303,7 +301,7 @@ export default function ApprovalsPage() {
                                             processing={
                                                 processingId === request.id
                                             }
-                                            onApprove={handleApprove}
+                                            onApprove={async requestId => { setApproveTarget(requests.find(request => request.id === requestId) ?? null); }}
                                             onReject={handleOpenReject}
                                         />
                                     ))}
@@ -323,7 +321,7 @@ export default function ApprovalsPage() {
                                 </div>
                             ) : (
                                 <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
-                                    <div className="grid grid-cols-[1fr_2fr_1fr_100px] bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500">
+                                    <div className="grid grid-cols-[1fr_1fr] gap-2 sm:grid-cols-[1fr_2fr_1fr_100px] bg-zinc-50 px-5 py-3 text-xs font-medium text-zinc-500">
                                         <span>신청자</span>
                                         <span>사유</span>
                                         <span>금액</span>
@@ -364,6 +362,7 @@ export default function ApprovalsPage() {
                 )}
             </section>
 
+            <ConfirmDialog open={approveTarget !== null} title="이 신청을 승인할까요?" description={approveTarget ? `${approveTarget.userName ?? "신청자"}님의 ${formatAmount(approveTarget.requestedAmount)} 신청을 승인하면 해당 금액이 가용 예산에서 선점됩니다.` : ""} confirmLabel="예산 승인" loading={processingId !== null} onCancel={() => setApproveTarget(null)} onConfirm={() => { if (approveTarget) void handleApprove(approveTarget.id); }} />
             {/* 반려 모달 */}
             {rejectTarget && (
                 <RejectModal

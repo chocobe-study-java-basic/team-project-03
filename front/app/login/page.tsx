@@ -2,6 +2,7 @@
 
 import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
+import AuthFrame from "../components/common/AuthFrame";
 import { useRouter, useSearchParams } from "next/navigation";
 import { login } from "../lib/api/userApi";
 
@@ -23,6 +24,7 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -33,7 +35,6 @@ function LoginForm() {
 
     try {
       await login({ email, password });
-      alert("로그인되었습니다.");
       router.replace(getNextPath(searchParams.get("next")));
     } catch (caughtError) {
       console.error(caughtError);
@@ -48,25 +49,10 @@ function LoginForm() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-
-        {/* 로고 */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-black tracking-tight text-zinc-900">
-            Budzet
-          </h1>
-
-          <p className="mt-2 text-sm text-zinc-500">
-            팀 예산을 쉽고 편하게 관리하세요.
-          </p>
-        </div>
-
-        {/* 로그인 카드 */}
-        <div className="bg-white rounded-2xl shadow-lg border border-zinc-200 p-8">
-
+    <AuthFrame>
+        <div>
           <div className="mb-7">
-            <h2 className="text-2xl font-bold text-zinc-900">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-900">
               로그인
             </h2>
 
@@ -75,15 +61,17 @@ function LoginForm() {
             </p>
           </div>
 
+          {searchParams.get("registered") === "1" && <p role="status" className="mb-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">가입이 완료됐어요. 로그인해 시작하세요.</p>}
           <form onSubmit={handleLogin} className="space-y-5">
 
             {/* 이메일 */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-zinc-700 mb-2">
                 이메일
               </label>
 
               <input
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -96,24 +84,25 @@ function LoginForm() {
 
             {/* 비밀번호 */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-zinc-700 mb-2">
                 비밀번호
               </label>
 
-              <input
-                type="password"
+              <div className="relative"><input
+                id="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="비밀번호를 입력해주세요."
                 autoComplete="current-password"
-                className="w-full h-12 rounded-xl border border-zinc-300 px-4 text-sm outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                className="w-full h-12 rounded-xl border border-zinc-300 pl-4 pr-16 text-sm outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
                 required
-              />
+              /><button type="button" aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 표시"} aria-pressed={showPassword} onClick={() => setShowPassword(current => !current)} className="absolute inset-y-0 right-3 my-auto h-9 rounded-lg px-2 text-xs font-semibold text-zinc-500 hover:text-indigo-600">{showPassword ? "숨김" : "표시"}</button></div>
             </div>
 
             {/* 에러 메시지 */}
             {error && (
-              <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">
+              <p role="alert" className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
@@ -142,7 +131,6 @@ function LoginForm() {
             </Link>
           </div>
         </div>
-      </div>
-    </main>
+    </AuthFrame>
   );
 }

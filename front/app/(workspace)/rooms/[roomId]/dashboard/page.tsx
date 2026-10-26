@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import BudgetActivity from "@/app/components/budget/BudgetActivity";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -81,15 +82,16 @@ function DashboardContent({ roomId }: { roomId: number }) {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 id="dashboard-title" className="text-2xl font-bold tracking-tight text-zinc-900">
-            대시보드
+            예산 한눈에 보기
           </h1>
           <p className="mt-1 text-sm text-zinc-500">{budget.roomName}의 예산 현황</p>
         </div>
+        <Link href={`${roomBasePath}/budget-requests`} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">+ 예산 신청</Link>
       </header>
 
       <article className="mt-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="grid gap-7 sm:grid-cols-3 sm:gap-6">
-          <SummaryItem label="총 예산" amount={formatMoney(budget.totalBudget, budget.currency)} tone="default" />
+          <SummaryItem label="현재 잔액" amount={formatMoney(budget.totalBudget, budget.currency)} tone="default" />
           <SummaryItem
             label="사용 가능"
             amount={formatMoney(budget.availableBudget, budget.currency)}
@@ -103,8 +105,9 @@ function DashboardContent({ roomId }: { roomId: number }) {
             tone="reserved"
           />
         </div>
+        <div className="mt-7 budget-track" role="img" aria-label={`가용 ${getAvailablePercent(budget.availableBudget, budget.totalBudget)}%, 나머지는 선점 중`}><span className="bg-emerald-500" style={{ width: `${Math.max(0, Math.min(100, Number(getAvailablePercent(budget.availableBudget, budget.totalBudget))))}%` }} /><span className="flex-1 bg-indigo-300" /></div>
         <p className="mt-6 border-t border-zinc-200 pt-6 text-sm font-medium text-zinc-800">
-          총 예산 {formatMoney(budget.totalBudget, budget.currency)}
+          현재 잔액 {formatMoney(budget.totalBudget, budget.currency)}
           <span className="mx-2 text-zinc-400">→</span>
           <span className="text-indigo-500">사용 가능 {formatMoney(budget.availableBudget, budget.currency)}</span>
           <span className="mx-2 text-zinc-400">+</span>
@@ -112,34 +115,8 @@ function DashboardContent({ roomId }: { roomId: number }) {
         </p>
       </article>
 
-      <article className="mt-7 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">최근 예산 변동</h2>
-          <Link href={`${roomBasePath}/settlements`} className="text-sm font-semibold text-indigo-500 hover:text-indigo-700">
-            전체 보기
-          </Link>
-        </div>
-        {history.length === 0 ? (
-          <p className="mt-5 rounded-xl bg-zinc-50 py-8 text-center text-sm text-zinc-500">
-            아직 예산 변동 내역이 없습니다.
-          </p>
-        ) : (
-          <ul className="mt-5 divide-y divide-zinc-100">
-            {history.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-4 py-4">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-zinc-800">{item.reason}</p>
-                  <p className="mt-1 text-sm text-zinc-500">{item.userName} · {formatDate(item.processedAt)}</p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="font-bold text-zinc-900">{formatMoney(item.changedBudget, budget.currency)}</p>
-                  <p className="mt-1 text-sm text-zinc-500">{item.type}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </article>
+      <div className="mt-6 grid gap-3 sm:grid-cols-2"><Link href={`${roomBasePath}/budget-requests`} className="room-card flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-5"><div><p className="font-semibold">필요한 예산 신청하기</p><p className="mt-1 text-sm text-zinc-500">사용 목적과 금액을 남겨 주세요.</p></div><span aria-hidden="true" className="text-indigo-600">↗</span></Link><Link href={`${roomBasePath}/settlements`} className="room-card flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-5"><div><p className="font-semibold">사용한 금액 정산하기</p><p className="mt-1 text-sm text-zinc-500">승인된 신청의 실제 지출을 기록해요.</p></div><span aria-hidden="true" className="text-indigo-600">↗</span></Link></div>
+      <BudgetActivity history={history} currency={budget.currency} />
     </section>
   );
 }
@@ -165,7 +142,7 @@ function SummaryItem({
   return (
     <div>
       <p className="text-sm font-medium text-zinc-500">{label}</p>
-      <p className={`mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl ${amountColor}`}>
+      <p className={`mt-1 break-words text-2xl font-extrabold tracking-tight lg:text-3xl ${amountColor}`}>
         {amount}
       </p>
       {description && <p className="mt-1 text-sm text-zinc-500">{description}</p>}
@@ -174,8 +151,10 @@ function SummaryItem({
 }
 
 function formatMoney(amount: number, currency: Budget["currency"]) {
-  const symbols = { KRW: "₩", USD: "$", JPY: "¥" };
-  return `${symbols[currency]}${amount.toLocaleString("ko-KR")}`;
+  const formatted = amount.toLocaleString("ko-KR");
+  if (currency === "KRW") return `${formatted}원`;
+  const symbols = { USD: "$", JPY: "¥" };
+  return `${symbols[currency]}${formatted}`;
 }
 
 function getAvailablePercent(available: number, total: number) {
@@ -183,9 +162,6 @@ function getAvailablePercent(available: number, total: number) {
   return ((available / total) * 100).toFixed(1);
 }
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("ko-KR");
-}
 
 function DashboardLoadingState() {
   return (

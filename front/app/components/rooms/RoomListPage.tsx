@@ -22,10 +22,10 @@ function RoomCard({ room }: { room: Room }) {
           )
           : 0;
 
-  const usedRate = 100 - availableRate;
+  const usedRate = room.totalBudget > 0 ? 100 - availableRate : 0;
 
   return (
-      <article className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-7">
+      <article className="room-card rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-7">
         <div className="flex items-start justify-between gap-5">
           <div className="flex min-w-0 items-center gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-lg font-bold text-indigo-500">
@@ -38,7 +38,7 @@ function RoomCard({ room }: { room: Room }) {
               </h2>
 
               <p className="mt-1 text-sm text-zinc-500">
-                {room.currency} · 총예산{" "}
+                {room.currency} · 현재 잔액{" "}
                 {formatBudget(room.totalBudget, room.currency)}
               </p>
             </div>
@@ -72,7 +72,7 @@ function RoomCard({ room }: { room: Room }) {
           <div className="mt-3 flex gap-4 text-sm text-zinc-500">
           <span className="flex items-center gap-1.5">
             <i className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
-            배정됨
+            선점 중
           </span>
 
             <span className="flex items-center gap-1.5">
@@ -85,7 +85,7 @@ function RoomCard({ room }: { room: Room }) {
         <div className="mt-6 flex flex-wrap items-end justify-between gap-5 border-t border-zinc-200 pt-5">
           <dl className="grid min-w-[250px] flex-1 grid-cols-2 gap-5 text-sm">
             <div>
-              <dt className="text-zinc-500">총 예산</dt>
+              <dt className="text-zinc-500">현재 잔액</dt>
 
               <dd className="mt-1 text-base font-extrabold text-zinc-900">
                 {formatBudget(room.totalBudget, room.currency)}
@@ -93,7 +93,7 @@ function RoomCard({ room }: { room: Room }) {
             </div>
 
             <div>
-              <dt className="text-zinc-500">사용률</dt>
+              <dt className="text-zinc-500">선점 비율</dt>
 
               <dd className="mt-1 text-base font-extrabold text-zinc-900">
                 {usedRate.toFixed(1)}%
@@ -132,6 +132,7 @@ function getErrorMessage(error: unknown) {
 }
 
 export default function RoomListPage() {
+  const [query, setQuery] = useState("");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [userName, setUserName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -191,8 +192,10 @@ export default function RoomListPage() {
     void loadUser();
   }, []);
 
+  const filteredRooms = rooms.filter(room => room.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+
   return (
-      <main className="min-h-screen bg-[#f8f8fb] text-zinc-900">
+      <main className="min-h-screen bg-background text-zinc-900">
         <header className="border-b border-zinc-200 bg-white">
           <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-5 sm:px-8">
             <Link
@@ -215,6 +218,7 @@ export default function RoomListPage() {
         <div className="mx-auto max-w-5xl px-5 py-12 sm:px-8">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
+              <p className="eyebrow mb-3 text-indigo-600">YOUR WORKSPACE</p>
               <h1 className="text-3xl font-bold tracking-tight">
                 내 모임
               </h1>
@@ -236,14 +240,13 @@ export default function RoomListPage() {
             </div>
           </div>
 
+          {!loading && !error && rooms.length > 0 && <div className="mt-8 flex flex-wrap items-center justify-between gap-3"><label className="relative block w-full sm:max-w-xs"><span className="sr-only">모임 이름 검색</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="모임 이름으로 검색" className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-4 text-sm" /></label><p aria-live="polite" className="text-sm text-zinc-500">{filteredRooms.length}개 모임</p></div>}
           <section
-              className="mt-10 space-y-5"
+              className="mt-6 space-y-5"
               aria-label="참여 중인 모임"
           >
             {loading && (
-                <div className="rounded-2xl border border-zinc-200 bg-white px-6 py-16 text-center text-sm text-zinc-500">
-                  모임 목록을 불러오는 중입니다.
-                </div>
+<div role="status" aria-label="모임 목록을 불러오는 중입니다" className="space-y-5">{[1, 2].map(item => <div key={item} className="rounded-2xl border border-zinc-200 bg-white p-7"><div className="loading-skeleton h-5 w-36" /><div className="loading-skeleton mt-6 h-10 w-52" /><div className="loading-skeleton mt-6 h-3 w-full" /></div>)}</div>
             )}
 
             {error && (
@@ -276,12 +279,13 @@ export default function RoomListPage() {
 
             {!loading &&
                 !error &&
-                rooms.map((room) => (
+                filteredRooms.map((room) => (
                     <RoomCard
                         key={room.id}
                         room={room}
                     />
                 ))}
+            {!loading && !error && rooms.length > 0 && filteredRooms.length === 0 && <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-12 text-center"><h2 className="font-bold">검색 결과가 없어요</h2><p className="mt-2 text-sm text-zinc-500">다른 이름으로 검색해 보세요.</p><button onClick={() => setQuery("")} className="mt-4 text-sm font-semibold text-indigo-600">검색 초기화</button></div>}
           </section>
         </div>
       </main>
