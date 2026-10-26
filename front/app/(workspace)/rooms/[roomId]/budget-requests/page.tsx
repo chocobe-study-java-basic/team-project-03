@@ -1,6 +1,10 @@
 "use client";
 
+
+import { notify } from "@/app/components/common/Feedback";
 import { useCallback, useEffect, useState } from "react";
+import ConfirmDialog from "@/app/components/common/ConfigmDialog/ConfirmDialog";
+import { getMe } from "@/app/lib/api/userApi";
 import { useParams } from "next/navigation";
 
 import {
@@ -22,6 +26,9 @@ export default function BudgetRequestsPage() {
     const [budget, setBudget] = useState<Budget | null>(null);
     const [requests, setRequests] = useState<BudgetRequest[]>([]);
 
+    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [formError, setFormError] = useState<string | null>(null);
     const [amount, setAmount] = useState("");
     const [reason, setReason] = useState("");
 
@@ -40,11 +47,13 @@ export default function BudgetRequestsPage() {
             setLoading(true);
             setError(null);
 
-            const [budgetData, requestData] = await Promise.all([
+            const [budgetData, requestData, user] = await Promise.all([
                 getBudget(roomId),
                 getBudgetRequests(roomId),
+                getMe(),
             ]);
 
+            setCurrentUserId(user.id);
             setBudget(budgetData);
             setRequests(requestData);
         } catch (error) {
@@ -66,26 +75,29 @@ export default function BudgetRequestsPage() {
 
     const handleSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
+        setFormError(null);
 
         if (!roomId || Number.isNaN(roomId)) {
-            alert("모임 정보를 찾을 수 없습니다.");
+            notify("모임 정보를 찾을 수 없습니다.");
             return;
         }
 
         const requestedAmount = Number(amount);
 
-        if (!requestedAmount || requestedAmount <= 0) {
-            alert("신청 금액을 입력해주세요.");
+        if (!Number.isSafeInteger(requestedAmount) || requestedAmount <= 0) {
+            setFormError("신청 금액은 1 이상의 정수로 입력해 주세요.");
+            document.getElementById("amount")?.focus();
             return;
         }
 
         if (!reason.trim()) {
-            alert("신청 사유를 입력해주세요.");
+            setFormError("예산 사용 목적을 입력해 주세요.");
+            document.getElementById("reason")?.focus();
             return;
         }
 
         if (reason.length > 20) {
-            alert("신청 사유는 20자 이하로 입력해주세요.");
+            setFormError("신청 사유는 20자 이하로 입력해 주세요.");
             return;
         }
 
@@ -102,11 +114,11 @@ export default function BudgetRequestsPage() {
 
             await loadData();
 
-            alert("예산 신청이 완료되었습니다.");
+            notify("예산 신청이 완료되었습니다.");
         } catch (error) {
             console.error("예산 신청에 실패했습니다.", error);
 
-            alert(
+            notify(
                 error instanceof Error
                     ? error.message
                     : "예산 신청에 실패했습니다.",
@@ -155,7 +167,7 @@ export default function BudgetRequestsPage() {
             {budget && (
                 <div className="grid gap-4 sm:grid-cols-3">
                     <BudgetCard
-                        label="전체 예산"
+                        label="현재 잔액"
                         value={budget.totalBudget}
                         currency={budget.currency}
                     />
@@ -194,6 +206,8 @@ export default function BudgetRequestsPage() {
 
                         <input
                             id="amount"
+                            required
+                            aria-describedby="request-form-help"
                             type="number"
                             min="1"
                             value={amount}
@@ -219,6 +233,8 @@ export default function BudgetRequestsPage() {
 
                         <input
                             id="reason"
+                            required
+                            aria-describedby="request-form-help"
                             type="text"
                             maxLength={20}
                             value={reason}
@@ -228,6 +244,7 @@ export default function BudgetRequestsPage() {
                         />
                     </div>
 
+                    <p id="request-form-help" role={formError ? "alert" : undefined} className={formError ? "text-sm text-red-600" : "text-xs leading-6 text-zinc-500"}>{formError ?? "승인되면 신청 금액이 선점돼요. 사용 후 정산하면 차액이 반환됩니다."}</p>
                     <button
                         type="submit"
                         disabled={submitting}
@@ -256,20 +273,22 @@ export default function BudgetRequestsPage() {
           </span>
                 </div>
 
-                {requests.length === 0 ? (
+                <div role="group" aria-label="신청 상태 필터" className="mt-5 flex flex-wrap gap-2">{[{ value: "ALL", label: "전체" }, { value: "REQUEST", label: "승인 대기" }, { value: "APPROVE", label: "승인 · 미정산" }, { value: "REJECT", label: "반려" }, { value: "SETTLEMENT", label: "정산 완료" }].map(filter => <button key={filter.value} type="button" aria-pressed={statusFilter === filter.value} onClick={() => setStatusFilter(filter.value)} className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition ${statusFilter === filter.value ? "border-indigo-600 bg-indigo-600 text-white" : "border-zinc-200 bg-white text-zinc-600 hover:border-indigo-300 hover:text-indigo-700"}`}>{filter.label}<span className={`rounded-full px-1.5 text-[11px] tabular-nums ${statusFilter === filter.value ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-500"}`}>{filter.value === "ALL" ? requests.length : requests.filter(request => request.status === filter.value).length}</span></button>)}</div>
+                {requests.filter(request => statusFilter === "ALL" || request.status === statusFilter).length === 0 ? (
                     <div className="mt-8 rounded-xl bg-zinc-50 py-10 text-center">
                         <p className="text-sm text-zinc-500">
-                            아직 예산 신청 내역이 없습니다.
+                            조건에 맞는 예산 신청 내역이 없습니다.
                         </p>
                     </div>
                 ) : (
                     <div className="mt-5 space-y-3">
-                        {requests.map((request) => (
+                        {requests.filter(request => statusFilter === "ALL" || request.status === statusFilter).map((request) => (
                             <RequestItem
                                 key={request.id}
                                 request={request}
                                 currency={budget?.currency ?? "KRW"}
                                 roomId={roomId}
+                                canCancel={request.userId === currentUserId}
                                 onCanceled={loadData}
                             />
                         ))}
@@ -317,35 +336,36 @@ function RequestItem({
     currency,
     roomId,
     onCanceled,
+    canCancel,
 }: {
     request: BudgetRequest;
     currency: "KRW" | "USD" | "JPY";
     roomId: number;
     onCanceled: () => Promise<void>;
+    canCancel: boolean;
 }) {
+    const [confirmCancel, setConfirmCancel] = useState(false);
     const [canceling, setCanceling] = useState(false);
 
     const handleCancel = async () => {
         if (!roomId || Number.isNaN(roomId)) {
-            alert("모임 정보를 찾을 수 없습니다.");
+            notify("모임 정보를 찾을 수 없습니다.");
             return;
         }
 
-        if (!window.confirm("이 예산 신청을 취소하시겠습니까?")) {
-            return;
-        }
-
+        if (canceling) return;
         try {
             setCanceling(true);
 
             await cancelBudgetRequest(roomId, request.id);
+            setConfirmCancel(false);
             await onCanceled();
 
-            alert("예산 신청이 취소되었습니다.");
+            notify("예산 신청이 취소되었습니다.");
         } catch (error) {
             console.error("예산 신청 취소에 실패했습니다.", error);
 
-            alert(
+            notify(
                 error instanceof Error
                     ? error.message
                     : "예산 신청 취소에 실패했습니다.",
@@ -373,10 +393,10 @@ function RequestItem({
                         {formatMoney(request.requestedAmount, currency)}
                     </p>
 
-                    {request.status !== "SETTLEMENT" && (
+                    {canCancel && request.status !== "SETTLEMENT" && (
                         <button
                             type="button"
-                            onClick={() => void handleCancel()}
+                            onClick={() => setConfirmCancel(true)}
                             disabled={canceling}
                             className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -386,6 +406,7 @@ function RequestItem({
                 </div>
             </div>
 
+            <ConfirmDialog open={confirmCancel} title="예산 신청을 취소할까요?" description={request.status === "APPROVE" ? "승인된 신청을 취소하면 선점한 금액이 가용 예산으로 반환됩니다." : "신청이 삭제됩니다. 필요한 경우 다시 신청할 수 있어요."} confirmLabel="신청 취소" variant="danger" loading={canceling} onCancel={() => setConfirmCancel(false)} onConfirm={() => void handleCancel()} />
             <div className="mt-3 flex items-center justify-between gap-3">
                 <StatusBadge status={request.status} />
 

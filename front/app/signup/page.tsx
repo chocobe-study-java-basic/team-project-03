@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import AuthFrame from "../components/common/AuthFrame";
 import { useRouter } from "next/navigation";
 import { signup } from "../lib/api/userApi";
 
@@ -10,6 +11,7 @@ export default function SignupPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -21,8 +23,7 @@ export default function SignupPage() {
 
     try {
       await signup({ email, password, name });
-      alert("회원가입이 완료되었습니다.");
-      router.replace("/login");
+      router.replace("/login?registered=1");
     } catch (caughtError) {
       console.error(caughtError);
       setError(
@@ -36,22 +37,10 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        {/* 로고 */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-black tracking-tight text-zinc-900">
-            Budzet
-          </h1>
-          <p className="mt-2 text-sm text-zinc-500">
-            팀 예산을 쉽고 편하게 관리하세요.
-          </p>
-        </div>
-
-        {/* 회원가입 카드 */}
-        <div className="bg-white rounded-2xl shadow-lg border border-zinc-200 p-8">
+    <AuthFrame>
+        <div>
           <div className="mb-7">
-            <h2 className="text-2xl font-bold text-zinc-900">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-900">
               회원가입
             </h2>
             <p className="mt-2 text-sm text-zinc-500">
@@ -62,11 +51,14 @@ export default function SignupPage() {
           <form onSubmit={handleSignup} className="space-y-5">
             {/* 이름 */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-zinc-700 mb-2">
                 이름
               </label>
 
               <input
+                id="name"
+                maxLength={50}
+                autoComplete="name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -78,11 +70,13 @@ export default function SignupPage() {
 
             {/* 이메일 */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-zinc-700 mb-2">
                 이메일
               </label>
 
               <input
+                id="email"
+                autoComplete="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -94,23 +88,27 @@ export default function SignupPage() {
 
             {/* 비밀번호 */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-zinc-700 mb-2">
                 비밀번호
               </label>
 
-              <input
-                type="password"
+              <div className="relative"><input
+                id="password"
+                minLength={8}
+                maxLength={20}
+                autoComplete="new-password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="비밀번호를 입력해주세요."
-                className="w-full h-12 rounded-xl border border-zinc-300 px-4 text-sm outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                placeholder="8~20자로 입력해주세요."
+                className="w-full h-12 rounded-xl border border-zinc-300 pl-4 pr-16 text-sm outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
                 required
-              />
+              /><button type="button" aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 표시"} aria-pressed={showPassword} onClick={() => setShowPassword(current => !current)} className="absolute inset-y-0 right-3 my-auto h-9 rounded-lg px-2 text-xs font-semibold text-zinc-500 hover:text-indigo-600">{showPassword ? "숨김" : "표시"}</button></div>
             </div>
 
             {/* 에러 */}
             {error && (
-              <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">
+              <p role="alert" className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
@@ -139,7 +137,6 @@ export default function SignupPage() {
             </Link>
           </div>
         </div>
-      </div>
-    </main>
+    </AuthFrame>
   );
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { getMe } from "../../lib/api/userApi";
 import { getMembers, getRoom } from "../../lib/api/roomsApi";
@@ -39,7 +39,7 @@ const navigation: {
     ];
 
 const workspaceStyle = {
-    "--workspace-sidebar-width": "18rem",
+    "--workspace-sidebar-width": "16rem",
 } as CSSProperties;
 
 function Icon({
@@ -144,7 +144,8 @@ function Sidebar({
     const roomBasePath = roomId ? `/rooms/${roomId}` : null;
 
     return (
-        <aside className="flex h-full flex-col border-r border-zinc-200 bg-white px-3 py-5">
+        <aside className="workspace-sidebar flex h-full flex-col border-r border-zinc-200 bg-white px-3 py-5">
+            <Link href="/rooms" onClick={onNavigate} className="mb-8 flex items-center gap-2.5 px-3 text-lg font-extrabold tracking-tight"><span className="brand-mark">B</span>Budzet</Link>
             <Link
                 href="/rooms"
                 onClick={onNavigate}
@@ -195,14 +196,15 @@ function Sidebar({
                             ? `${roomBasePath}/${item.path}`
                             : "/rooms";
 
-                        const active = pathname === href;
+                        const active = pathname === href || pathname.startsWith(`${href}/`);
 
                         return (
                             <Link
                                 key={item.path}
+                                aria-current={active ? "page" : undefined}
                                 href={href}
                                 onClick={onNavigate}
-                                className={`flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors ${active
+                                className={`workspace-nav flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors ${active
                                         ? "bg-indigo-50 text-indigo-600"
                                         : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                                     }`}
@@ -242,6 +244,25 @@ export default function WorkspaceShell({
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
+    const drawerRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!isOpen) return;
+        const previous = document.activeElement as HTMLElement | null;
+        const overflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        drawerRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+        const handleKey = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setIsOpen(false);
+            if (event.key !== "Tab") return;
+            const items = drawerRef.current?.querySelectorAll<HTMLElement>("a[href],button:not([disabled])");
+            if (!items?.length) return;
+            const first = items[0], last = items[items.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        };
+        document.addEventListener("keydown", handleKey);
+        return () => { document.body.style.overflow = overflow; document.removeEventListener("keydown", handleKey); previous?.focus(); };
+    }, [isOpen]);
 
     const { roomId: roomIdParam } = useParams<{
         roomId?: string;
@@ -360,7 +381,7 @@ export default function WorkspaceShell({
 
     return (
         <div
-            className="min-h-screen bg-[#f8f8fb] text-zinc-900"
+            className="workspace-shell min-h-screen text-zinc-900"
             style={workspaceStyle}
         >
             {/* PC 사이드바 */}
@@ -378,6 +399,8 @@ export default function WorkspaceShell({
                 <button
                     type="button"
                     aria-label="메뉴 열기"
+                    aria-expanded={isOpen}
+                    aria-controls="workspace-drawer"
                     onClick={() => setIsOpen(true)}
                     className="rounded-lg p-2 text-zinc-700 hover:bg-zinc-100"
                 >
@@ -399,7 +422,7 @@ export default function WorkspaceShell({
                         className="absolute inset-0 bg-zinc-900/30"
                     />
 
-                    <div className="relative h-full w-[var(--workspace-sidebar-width)] bg-white shadow-xl">
+                    <div id="workspace-drawer" ref={drawerRef} role="dialog" aria-modal="true" aria-label="모임 메뉴" className="relative h-full w-[var(--workspace-sidebar-width)] bg-white shadow-xl">
                         <button
                             type="button"
                             aria-label="메뉴 닫기"
@@ -420,7 +443,8 @@ export default function WorkspaceShell({
                 </div>
             )}
 
-            <main className="min-h-[calc(100vh-4rem)] px-5 py-6 md:ml-[var(--workspace-sidebar-width)] md:min-h-screen md:px-10 md:py-10 lg:px-14">
+            <main inert={isOpen || undefined} className="min-h-[calc(100vh-4rem)] px-5 py-6 md:ml-[var(--workspace-sidebar-width)] md:min-h-screen md:px-10 md:py-10 lg:px-14">
+                <div className="mb-8 hidden items-center justify-between border-b border-zinc-200 pb-5 md:flex"><p className="flex items-center gap-2 text-sm text-zinc-500"><span>{roomName}</span><span aria-hidden="true">/</span><span className="font-semibold text-zinc-800">{navigation.find(item => (pathname.endsWith(`/${item.path}`) || pathname.includes(`/${item.path}/`)))?.label ?? "모임 정보"}</span></p><span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-600">{userRole || "확인 중"}</span></div>
                 {/* 일반 페이지는 그대로 표시하고, 제한 페이지는 권한 확인 후에만 표시 */}
                 {/* 확인 중·조회 실패·권한 없음 상태에서는 페이지 내부 API도 실행되지 않음 */}
                 {!restrictedPage ? children : !validRoomId ? (
