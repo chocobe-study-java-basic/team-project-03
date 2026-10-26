@@ -89,7 +89,14 @@ public class InviteService {
     }
 
     @Transactional(readOnly = true)
-    public List<InviteResponse> getInvites(Long roomId) {
+    public List<InviteResponse> getInvites(Long roomId, Long actorId) {
+
+        UserRoomConnection connection = userRoomConnectionRepository
+                .findByUser_IdAndRoom_Id(actorId, roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_JOINED_ROOM));
+        if (connection.getAuthority() != Authority.OWNER) {
+            throw new BusinessException(ErrorCode.OWNER_REQUIRED);
+        }
 
         List<Invite> invites = inviteRepository.findAllByRoom_Id(roomId);
 
