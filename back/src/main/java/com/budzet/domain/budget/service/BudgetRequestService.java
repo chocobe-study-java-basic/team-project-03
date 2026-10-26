@@ -105,8 +105,8 @@ public class BudgetRequestService {
         else if (!budgetRequestResponse.userId().equals(user.getId()))
             throw new BusinessException(ErrorCode.NOT_BUDGET_REQUESTER);
         else{
-            String status = budgetRequestResponse.status();
-            if(BudgetRequestType.APPROVE.name().equals(status))
+            BudgetRequestType status = budgetRequestResponse.status();
+            if(BudgetRequestType.APPROVE.equals(status))
                 room.updateAvailableBudget(budgetRequestResponse.requestedAmount());
             budgetRequestRepository.deleteById(requestId);
         }
@@ -137,8 +137,8 @@ public class BudgetRequestService {
 
 
 
-        String status = budgetRequest.getStatus();
-        if(BudgetRequestType.APPROVE.name().equals(status) || BudgetRequestType.SETTLEMENT.name().equals(status))
+        BudgetRequestType status = budgetRequest.getStatus();
+        if(BudgetRequestType.APPROVE.equals(status) || BudgetRequestType.SETTLEMENT.equals(status))
             throw new BusinessException(ErrorCode.NOT_APPROVABLE);
         else if(room.getAvailableBudget() < budgetRequest.getRequestedAmount())
             throw new BusinessException(ErrorCode.BUDGET_EXCEEDED);
@@ -168,8 +168,8 @@ public class BudgetRequestService {
         BudgetRequest budgetRequest = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND));
 
-        String status = budgetRequest.getStatus();
-        if(BudgetRequestType.REJECT.name().equals(status) || BudgetRequestType.SETTLEMENT.name().equals(status))
+        BudgetRequestType status = budgetRequest.getStatus();
+        if(BudgetRequestType.REJECT.equals(status) || BudgetRequestType.SETTLEMENT.equals(status))
             throw new BusinessException(ErrorCode.NOT_REJECTABLE);
         else
             budgetRequest.rejectRequest(rejectReason);
@@ -194,15 +194,15 @@ public class BudgetRequestService {
         Room room = this.roomRepository.findById(roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
 
-        String status = budgetRequest.getStatus();
-        if(BudgetRequestType.SETTLEMENT.name().equals(status))
+        BudgetRequestType status = budgetRequest.getStatus();
+        if(BudgetRequestType.SETTLEMENT.equals(status))
             throw new BusinessException(ErrorCode.NOT_MODIFYABLE);
         else if(room.getAvailableBudget() + budgetRequest.getRequestedAmount() < requestedAmount)
             throw new BusinessException(ErrorCode.REQUEST_AMOUNT_OVER_BUDGET);
         else if (!budgetRequest.getUser().getId().equals(user.getId()))
             throw new BusinessException(ErrorCode.NOT_BUDGET_REQUESTER);
         else{
-            if(budgetRequest.getStatus().equals(BudgetRequestType.APPROVE.name()))
+            if(budgetRequest.getStatus().equals(BudgetRequestType.APPROVE))
                 room.updateAvailableBudget(budgetRequest.getRequestedAmount() - requestedAmount);
             budgetRequest.modifyRequest(reason, requestedAmount);
         }

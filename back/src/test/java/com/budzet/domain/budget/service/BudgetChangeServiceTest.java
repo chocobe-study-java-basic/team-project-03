@@ -3,6 +3,7 @@ package com.budzet.domain.budget.service;
 import com.budzet.domain.budget.dto.*;
 import com.budzet.domain.budget.entity.BudgetChange;
 import com.budzet.domain.budget.entity.BudgetRequest;
+import com.budzet.domain.budget.entity.BudgetRequestType;
 import com.budzet.domain.budget.entity.BudgetType;
 import com.budzet.domain.budget.repository.BudgetChangeRepository;
 import com.budzet.domain.budget.repository.BudgetRequestRepository;
@@ -89,7 +90,7 @@ class BudgetChangeServiceTest {
         when(budgetRequest.getId()).thenReturn(requestId);
         when(budgetRequest.getRoom()).thenReturn(room);
         when(budgetRequest.getUser()).thenReturn(user);
-        when(budgetRequest.getStatus()).thenReturn("APPROVE");
+        when(budgetRequest.getStatus()).thenReturn(BudgetRequestType.valueOf("APPROVE"));
         when(budgetRequest.getRequestedAmount()).thenReturn(10000L);
 
         when(budgetService.findByRoomIdWithLock(roomId))
@@ -314,7 +315,7 @@ class BudgetChangeServiceTest {
 
         when(budgetRequest.getUser()).thenReturn(user);
         when(user.getId()).thenReturn(userId);
-        when(budgetRequest.getStatus()).thenReturn("PENDING");
+        when(budgetRequest.getStatus()).thenReturn(BudgetRequestType.valueOf("REQUEST"));
 
         // when
         BusinessException exception = assertThrows(

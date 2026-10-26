@@ -59,7 +59,7 @@ public class BudgetChangeService {
         }
 
         //승인된 요청이 아닐 때 예외처리
-        if(!BudgetRequestType.APPROVE.name().equals(budgetRequest.getStatus())){
+        if(!BudgetRequestType.APPROVE.equals(budgetRequest.getStatus())){
             throw new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_APPROVED);
         }
 
