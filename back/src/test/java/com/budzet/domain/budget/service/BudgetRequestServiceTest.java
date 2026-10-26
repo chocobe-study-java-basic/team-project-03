@@ -75,6 +75,11 @@ class BudgetRequestServiceTest {
                 .thenReturn(Optional.of(room));
     }
 
+    private void mockRoomWithLock() {
+        when(roomRepository.findByWithLock(roomId))
+                .thenReturn(Optional.of(room));
+    }
+
     private void mockAuthority(Authority authority) {
         when(userRoomConnectionRepository.findByUser_IdAndRoom_Id(userId, roomId))
                 .thenReturn(Optional.of(userRoomConnection));
@@ -238,7 +243,7 @@ class BudgetRequestServiceTest {
     void approveBudgetRequest_success() {
         mockAuthority(Authority.OWNER);
         mockBudgetRequest(BudgetRequestType.REQUEST);
-        mockRoom();
+        mockRoomWithLock();
         when(budgetRequest.getRequestedAmount()).thenReturn(200L);
         when(room.getAvailableBudget()).thenReturn(1000L);
 
@@ -267,7 +272,7 @@ class BudgetRequestServiceTest {
     void approveBudgetRequest_alreadyApproved() {
         mockAuthority(Authority.OWNER);
         mockBudgetRequest(BudgetRequestType.APPROVE);
-        mockRoom();
+        mockRoomWithLock();
 
         assertThrows(
                 BusinessException.class,
@@ -283,7 +288,7 @@ class BudgetRequestServiceTest {
     void approveBudgetRequest_settledRequest() {
         mockAuthority(Authority.OWNER);
         mockBudgetRequest(BudgetRequestType.SETTLEMENT);
-        mockRoom();
+        mockRoomWithLock();
 
         assertThrows(
                 BusinessException.class,
@@ -299,7 +304,7 @@ class BudgetRequestServiceTest {
     void approveBudgetRequest_insufficientBudget() {
         mockAuthority(Authority.OWNER);
         mockBudgetRequest(BudgetRequestType.REQUEST);
-        mockRoom();
+        mockRoomWithLock();
         when(budgetRequest.getRequestedAmount()).thenReturn(200L);
         when(room.getAvailableBudget()).thenReturn(100L);
 

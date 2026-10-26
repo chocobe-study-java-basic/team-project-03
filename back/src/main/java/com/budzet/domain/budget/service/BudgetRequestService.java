@@ -129,11 +129,11 @@ public class BudgetRequestService {
         if(userRoomConnection.getAuthority() == Authority.MEMBER)
             throw new BusinessException(ErrorCode.OWNER_REQUIRED);
 
-        BudgetRequest budgetRequest = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND));
-
         Room room = roomRepository.findByWithLock(roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+
+        BudgetRequest budgetRequest = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND));
 
         BudgetRequestType status = budgetRequest.getStatus();
         if(!BudgetRequestType.REQUEST.equals(status))
@@ -186,11 +186,12 @@ public class BudgetRequestService {
 
         userInRoomCheck(new UserRoomConnectionId(user.getId(), roomId));
 
-        BudgetRequest budgetRequest = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND));
 
         Room room = this.roomRepository.findById(roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+
+        BudgetRequest budgetRequest = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND));
 
         BudgetRequestType status = budgetRequest.getStatus();
         if(BudgetRequestType.SETTLEMENT.equals(status))
