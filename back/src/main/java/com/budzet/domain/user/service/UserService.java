@@ -103,6 +103,21 @@ public class UserService {
     }
 
     @Transactional
+    public void updatePassword(Long userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new BusinessException(ErrorCode.USER_NOT_FOUND)
+        );
+
+        checkPassword(currentPassword, user.getPassword());
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new BusinessException(ErrorCode.PASSWORD_UNCHANGED);
+        }
+
+        user.updatePassword(passwordEncoder.encode(newPassword));
+        user.clearRefreshToken();
+    }
+
+    @Transactional
     public User updateProfile(Long userId, String name) {
         User user = userRepository.findById(userId).orElseThrow(
                 () -> new BusinessException(ErrorCode.USER_NOT_FOUND)

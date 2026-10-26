@@ -135,6 +135,28 @@ public class UserController {
     }
 
     @Operation(
+            summary = "비밀번호 변경",
+            description = "현재 비밀번호 확인 후 변경",
+            security = @SecurityRequirement(name = "BearerAuth")
+    )
+    @PatchMapping("/me/password")
+    public ResponseEntity<ApiResponse<Void>> updatePassword(
+            @RequestBody @Valid UserPasswordUpdateRequest reqBody
+    ) {
+        User actor = rq.getActor();
+        userService.updatePassword(actor.getId(), reqBody.currentPassword(), reqBody.newPassword());
+
+        rq.deleteCookie("accessToken");
+        rq.deleteCookie("refreshToken");
+
+        return ApiResponse.response(
+                HttpStatus.OK,
+                "비밀번호가 변경되었습니다. 다시 로그인해주세요.",
+                null
+        );
+    }
+
+    @Operation(
             summary = "내 정보 수정",
             security = @SecurityRequirement(name = "BearerAuth")
     )
