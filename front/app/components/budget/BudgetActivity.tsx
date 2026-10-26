@@ -126,7 +126,7 @@ export default function BudgetActivity({
   const currentPage = Math.min(page, pages - 1);
   const dayEntries = monthly.filter(
     (item) =>
-      !selectedDay || dayKey(new Date(item.processedAt)) === selectedDay,
+      selectedDay !== null && dayKey(new Date(item.processedAt)) === selectedDay,
   );
   const months = Array.from({ length: 6 }, (_, i) => {
     const date = new Date(year, monthNumber - 6 + i, 1);
@@ -490,9 +490,10 @@ export default function BudgetActivity({
               },
             )}
           </div>
+          {selectedDay && <>
           <div className="mt-5 flex items-center justify-between border-t border-zinc-200 pt-5">
             <h3 className="text-sm font-semibold">
-              {selectedDay ? selectedDay + " 내역" : "이 달의 내역"}
+              {selectedDay + " 내역"}
             </h3>
             {selectedDay && (
               <button
@@ -525,6 +526,7 @@ export default function BudgetActivity({
               이 달의 전체 내역 보기 →
             </button>
           )}
+          </>}
         </div>
       )}
       <p className="mt-6 border-t border-zinc-100 pt-4 text-xs leading-6 text-zinc-500">

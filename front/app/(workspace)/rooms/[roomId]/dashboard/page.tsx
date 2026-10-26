@@ -151,8 +151,10 @@ function SummaryItem({
 }
 
 function formatMoney(amount: number, currency: Budget["currency"]) {
-  const symbols = { KRW: "₩", USD: "$", JPY: "¥" };
-  return `${symbols[currency]}${amount.toLocaleString("ko-KR")}`;
+  const formatted = amount.toLocaleString("ko-KR");
+  if (currency === "KRW") return `${formatted}원`;
+  const symbols = { USD: "$", JPY: "¥" };
+  return `${symbols[currency]}${formatted}`;
 }
 
 function getAvailablePercent(available: number, total: number) {
