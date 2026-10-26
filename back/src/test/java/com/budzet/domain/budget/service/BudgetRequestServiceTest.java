@@ -81,7 +81,7 @@ class BudgetRequestServiceTest {
         when(userRoomConnection.getAuthority()).thenReturn(authority);
     }
 
-    private void mockBudgetRequest(String status) {
+    private void mockBudgetRequest(BudgetRequestType status) {
         when(budgetRequestRepository.findByIdAndRoomId(requestId, roomId))
                 .thenReturn(Optional.of(budgetRequest));
         when(budgetRequest.getStatus()).thenReturn(status);
@@ -175,7 +175,7 @@ class BudgetRequestServiceTest {
         when(budgetRequestRepository.findDtoById(roomId, requestId))
                 .thenReturn(response);
         when(response.userId()).thenReturn(userId);
-        when(response.status()).thenReturn(BudgetRequestType.REQUEST.name());
+        when(response.status()).thenReturn(BudgetRequestType.REQUEST);
 
         budgetRequestService.deleteBudgetRequest(roomId, user, requestId);
 
@@ -206,7 +206,7 @@ class BudgetRequestServiceTest {
         when(budgetRequestRepository.findDtoById(roomId, requestId))
                 .thenReturn(response);
         when(response.userId()).thenReturn(userId);
-        when(response.status()).thenReturn(BudgetRequestType.APPROVE.name());
+        when(response.status()).thenReturn(BudgetRequestType.APPROVE);
         when(response.requestedAmount()).thenReturn(300L);
 
         budgetRequestService.deleteBudgetRequest(roomId, user, requestId);
@@ -237,7 +237,7 @@ class BudgetRequestServiceTest {
     @DisplayName("예산 신청 승인에 성공한다")
     void approveBudgetRequest_success() {
         mockAuthority(Authority.OWNER);
-        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+        mockBudgetRequest(BudgetRequestType.REQUEST);
         mockRoom();
         when(budgetRequest.getRequestedAmount()).thenReturn(200L);
         when(room.getAvailableBudget()).thenReturn(1000L);
@@ -266,7 +266,7 @@ class BudgetRequestServiceTest {
     @DisplayName("이미 승인된 예산 신청은 다시 승인할 수 없다")
     void approveBudgetRequest_alreadyApproved() {
         mockAuthority(Authority.OWNER);
-        mockBudgetRequest(BudgetRequestType.APPROVE.name());
+        mockBudgetRequest(BudgetRequestType.APPROVE);
         mockRoom();
 
         assertThrows(
@@ -282,7 +282,7 @@ class BudgetRequestServiceTest {
     @DisplayName("정산된 예산 신청은 승인할 수 없다")
     void approveBudgetRequest_settledRequest() {
         mockAuthority(Authority.OWNER);
-        mockBudgetRequest(BudgetRequestType.SETTLEMENT.name());
+        mockBudgetRequest(BudgetRequestType.SETTLEMENT);
         mockRoom();
 
         assertThrows(
@@ -298,7 +298,7 @@ class BudgetRequestServiceTest {
     @DisplayName("가용 예산이 부족하면 예산 신청을 승인할 수 없다")
     void approveBudgetRequest_insufficientBudget() {
         mockAuthority(Authority.OWNER);
-        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+        mockBudgetRequest(BudgetRequestType.REQUEST);
         mockRoom();
         when(budgetRequest.getRequestedAmount()).thenReturn(200L);
         when(room.getAvailableBudget()).thenReturn(100L);
@@ -320,7 +320,7 @@ class BudgetRequestServiceTest {
     @DisplayName("예산 신청 반려에 성공한다")
     void rejectBudgetRequest_success() {
         mockAuthority(Authority.OWNER);
-        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+        mockBudgetRequest(BudgetRequestType.REQUEST);
 
         budgetRequestService.rejectBudgetRequest(
                 roomId, user, requestId, "사유 불충분"
@@ -349,7 +349,7 @@ class BudgetRequestServiceTest {
     @DisplayName("이미 반려된 예산 신청은 다시 반려할 수 없다")
     void rejectBudgetRequest_alreadyRejected() {
         mockAuthority(Authority.OWNER);
-        mockBudgetRequest(BudgetRequestType.REJECT.name());
+        mockBudgetRequest(BudgetRequestType.REJECT);
 
         assertThrows(
                 BusinessException.class,
@@ -365,7 +365,7 @@ class BudgetRequestServiceTest {
     @DisplayName("정산된 예산 신청은 반려할 수 없다")
     void rejectBudgetRequest_settledRequest() {
         mockAuthority(Authority.OWNER);
-        mockBudgetRequest(BudgetRequestType.SETTLEMENT.name());
+        mockBudgetRequest(BudgetRequestType.SETTLEMENT);
 
         assertThrows(
                 BusinessException.class,
@@ -384,7 +384,7 @@ class BudgetRequestServiceTest {
     @Test
     @DisplayName("예산 신청 수정에 성공한다")
     void modifyBudgetRequest_success() {
-        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+        mockBudgetRequest(BudgetRequestType.REQUEST);
         mockRoom();
         when(budgetRequest.getRequestedAmount()).thenReturn(100L);
         when(budgetRequest.getUser()).thenReturn(user);
@@ -400,7 +400,7 @@ class BudgetRequestServiceTest {
     @Test
     @DisplayName("다른 사용자의 예산 신청은 수정할 수 없다")
     void modifyBudgetRequest_notRequester() {
-        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+        mockBudgetRequest(BudgetRequestType.REQUEST);
         mockRoom();
 
         User otherUser = mock(User.class);
@@ -422,7 +422,7 @@ class BudgetRequestServiceTest {
     @Test
     @DisplayName("정산된 예산 신청은 수정할 수 없다")
     void modifyBudgetRequest_settledRequest() {
-        mockBudgetRequest(BudgetRequestType.SETTLEMENT.name());
+        mockBudgetRequest(BudgetRequestType.SETTLEMENT);
         mockRoom();
 
         assertThrows(
@@ -438,7 +438,7 @@ class BudgetRequestServiceTest {
     @Test
     @DisplayName("신청 금액이 가용 예산을 초과하면 수정할 수 없다")
     void modifyBudgetRequest_exceedsAvailableBudget() {
-        mockBudgetRequest(BudgetRequestType.REQUEST.name());
+        mockBudgetRequest(BudgetRequestType.REQUEST);
         mockRoom();
 
         when(budgetRequest.getRequestedAmount()).thenReturn(100L);
@@ -457,7 +457,7 @@ class BudgetRequestServiceTest {
     @Test
     @DisplayName("승인된 예산 신청의 금액을 수정하면 가용 예산을 재계산한다")
     void modifyBudgetRequest_approvedRequest_updatesAvailableBudget() {
-        mockBudgetRequest(BudgetRequestType.APPROVE.name());
+        mockBudgetRequest(BudgetRequestType.APPROVE);
         mockRoom();
         when(budgetRequest.getRequestedAmount()).thenReturn(100L);
         when(budgetRequest.getUser()).thenReturn(user);

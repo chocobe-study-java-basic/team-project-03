@@ -39,8 +39,9 @@ public class BudgetRequest {
 
     private Long requestedAmount;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private String status;
+    private BudgetRequestType status;
 
     @Column(length = 50)
     private String rejectReason;
@@ -57,15 +58,15 @@ public class BudgetRequest {
         this.userName = user.getName();
         this.reason = reason;
         this.requestedAmount = requestedAmount;
-        this.status = BudgetRequestType.REQUEST.name();
+        this.status = BudgetRequestType.REQUEST;
     }
 
     public void changeToSettlement() {
-        if (!BudgetRequestType.APPROVE.name().equals(this.status)) {
+        if (!BudgetRequestType.APPROVE.equals(this.status)) {
             throw new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_APPROVED);
         }
 
-        this.status = BudgetRequestType.SETTLEMENT.name();
+        this.status = BudgetRequestType.SETTLEMENT;
     }
 
     public void updateRequest(BudgetChange budgetChange, User user){
@@ -76,19 +77,19 @@ public class BudgetRequest {
     }
 
     public void approveRequest(){
-        this.status = BudgetRequestType.APPROVE.name();
+        this.status = BudgetRequestType.APPROVE;
         this.rejectReason = "";
     }
 
     public void rejectRequest(String rejectReason){
-        this.status = BudgetRequestType.REJECT.name();
+        this.status = BudgetRequestType.REJECT;
         this.rejectReason = rejectReason;
     }
 
     public void modifyRequest(String reason, Long requestedAmount){
         this.reason = reason;
         this.requestedAmount = requestedAmount;
-        this.status = BudgetRequestType.REQUEST.name();
+        this.status = BudgetRequestType.REQUEST;
         this.rejectReason = "";
     }
 
