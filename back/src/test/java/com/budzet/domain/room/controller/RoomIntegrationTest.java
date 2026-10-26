@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.budzet.domain.budget.entity.BudgetRequestType;
 import com.budzet.domain.room.dto.RoomCreateRequest;
 import com.budzet.domain.room.dto.RoomUpdateRequest;
 import com.budzet.domain.room.dto.AuthorityChangeRequest;
@@ -622,7 +623,7 @@ class RoomIntegrationTest {
                 .extracting(connection -> connection.getUser().getId())
                 .containsExactlyInAnyOrder(owner.getId(), related.memberId());
         BudgetRequest request = budgetRequestRepository.findById(related.requestId()).orElseThrow();
-        assertThat(request.getStatus()).isEqualTo("SETTLEMENT");
+        assertThat(request.getStatus()).isEqualTo(BudgetRequestType.valueOf("SETTLEMENT"));
         assertThat(request.getRequestedAmount()).isEqualTo(20_000L);
         BudgetChange change = budgetChangeRepository.findById(related.changeId()).orElseThrow();
         assertThat(change.getChangedBudget()).isEqualTo(15_000L);
