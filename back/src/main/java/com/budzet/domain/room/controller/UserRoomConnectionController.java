@@ -32,7 +32,7 @@ public class UserRoomConnectionController {
             @PathVariable Long userId
     ) {
         String authority = userRoomConnectionService
-                .getConnection(roomId, userId)
+                .getConnection(roomId, rq.getActor().getId(), userId)
                 .getAuthority()
                 .name();
 
@@ -52,7 +52,7 @@ public class UserRoomConnectionController {
             @PathVariable Long roomId
     ) {
         List<MemberResponse> members =
-                userRoomConnectionService.getMembers(roomId);
+                userRoomConnectionService.getMembers(roomId, rq.getActor().getId());
 
         return ApiResponse.success(
                 HttpStatus.OK,

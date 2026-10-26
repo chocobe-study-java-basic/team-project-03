@@ -104,6 +104,9 @@ class InviteControllerTest {
     @Test
     void getInvites() {
         Long roomId = 1L;
+        User actor = mock(User.class);
+        when(rq.getActor()).thenReturn(actor);
+        when(actor.getId()).thenReturn(2L);
 
         List<InviteResponse> inviteResponses = List.of(
                 new InviteResponse(
@@ -116,7 +119,7 @@ class InviteControllerTest {
                 )
         );
 
-        when(inviteService.getInvites(roomId))
+        when(inviteService.getInvites(roomId, 2L))
                 .thenReturn(inviteResponses);
 
         ApiResponse<List<InviteResponse>> response =
@@ -126,6 +129,6 @@ class InviteControllerTest {
         assertThat(response.message()).isEqualTo("초대 링크 조회 성공");
         assertThat(response.data()).isEqualTo(inviteResponses);
 
-        verify(inviteService).getInvites(roomId);
+        verify(inviteService).getInvites(roomId, 2L);
     }
 }

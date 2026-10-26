@@ -2,6 +2,7 @@ package com.budzet.domain.room.service;
 
 import com.budzet.domain.room.entity.Authority;
 import com.budzet.domain.room.entity.UserRoomConnection;
+import com.budzet.domain.room.entity.UserRoomConnectionId;
 import com.budzet.domain.room.repository.UserRoomConnectionRepository;
 import com.budzet.global.exception.BusinessException;
 import com.budzet.global.exception.ErrorCode;
@@ -18,7 +19,9 @@ public class UserRoomConnectionService {
 
     private final UserRoomConnectionRepository userRoomConnectionRepository;
 
-    public UserRoomConnection getConnection(Long roomId, Long userId) {
+    @Transactional(readOnly = true)
+    public UserRoomConnection getConnection(Long roomId, Long actorId, Long userId) {
+        validateRoomMember(roomId, actorId);
 
         return userRoomConnectionRepository
                 .findByUser_IdAndRoom_Id(userId, roomId)
@@ -26,11 +29,18 @@ public class UserRoomConnectionService {
     }
 
     @Transactional(readOnly = true)
-    public List<MemberResponse> getMembers(Long roomId) {
+    public List<MemberResponse> getMembers(Long roomId, Long actorId) {
+        validateRoomMember(roomId, actorId);
         return userRoomConnectionRepository.findAllByRoom_Id(roomId)
                 .stream()
                 .map(MemberResponse::from)
                 .toList();
+    }
+
+    private void validateRoomMember(Long roomId, Long actorId) {
+        if (!userRoomConnectionRepository.existsById(new UserRoomConnectionId(actorId, roomId))) {
+            throw new BusinessException(ErrorCode.USER_NOT_JOINED_ROOM);
+        }
     }
 
     @Transactional

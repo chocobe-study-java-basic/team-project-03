@@ -3,6 +3,7 @@ package com.budzet.domain.room.service;
 import com.budzet.domain.room.dto.MemberResponse;
 import com.budzet.domain.room.entity.Authority;
 import com.budzet.domain.room.entity.UserRoomConnection;
+import com.budzet.domain.room.entity.UserRoomConnectionId;
 import com.budzet.domain.room.repository.UserRoomConnectionRepository;
 import com.budzet.global.exception.BusinessException;
 import com.budzet.global.exception.ErrorCode;
@@ -38,6 +39,7 @@ class UserRoomConnectionServiceTest {
     @Test
     @DisplayName("멤버 연결 조회 성공")
     void getConnection() {
+        mockMembership();
 
         UserRoomConnection connection =
                 mock(UserRoomConnection.class);
@@ -47,7 +49,7 @@ class UserRoomConnectionServiceTest {
                 .thenReturn(Optional.of(connection));
 
         UserRoomConnection result =
-                userRoomConnectionService.getConnection(1L, 1L);
+                userRoomConnectionService.getConnection(1L, 2L, 1L);
 
         assertSame(connection, result);
     }
@@ -55,6 +57,7 @@ class UserRoomConnectionServiceTest {
     @Test
     @DisplayName("존재하지 않는 멤버 연결 조회 시 예외 발생")
     void getConnection_memberNotFound() {
+        mockMembership();
 
         when(userRoomConnectionRepository
                 .findByUser_IdAndRoom_Id(1L, 1L))
@@ -62,7 +65,7 @@ class UserRoomConnectionServiceTest {
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> userRoomConnectionService.getConnection(1L, 1L)
+                () -> userRoomConnectionService.getConnection(1L, 2L, 1L)
         );
 
         assertThat(exception.getErrorCode().getMessage())
@@ -72,6 +75,7 @@ class UserRoomConnectionServiceTest {
     @Test
     @DisplayName("모임 멤버 목록 조회 성공")
     void getMembers_success() {
+        mockMembership();
 
         UserRoomConnection connection1 =
                 mock(UserRoomConnection.class);
@@ -107,7 +111,7 @@ class UserRoomConnectionServiceTest {
                 .thenReturn(List.of(connection1, connection2));
 
         List<MemberResponse> result =
-                userRoomConnectionService.getMembers(1L);
+                userRoomConnectionService.getMembers(1L, 2L);
 
         assertEquals(2, result.size());
 
@@ -312,4 +316,8 @@ class UserRoomConnectionServiceTest {
     }
 
 
+    private void mockMembership() {
+        when(userRoomConnectionRepository.existsById(new UserRoomConnectionId(2L, 1L)))
+                .thenReturn(true);
+    }
 }
