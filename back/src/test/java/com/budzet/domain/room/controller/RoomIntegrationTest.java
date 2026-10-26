@@ -277,6 +277,9 @@ class RoomIntegrationTest {
     void updateRoom_persistsNameAndPreservesOtherFields() throws Exception {
         User owner = createUser();
         Room room = createRoom(owner, "기존 이름", 100_000L, Currency.USD);
+        // 최초 객체의 나노초 값 대신 DB에 저장된 정밀도의 시간을 기준으로 비교한다.
+        LocalDateTime originalCreatedAt = roomRepository.findById(room.getId())
+                .orElseThrow().getCreatedAt();
 
         mockMvc.perform(patch("/rooms/{roomId}", room.getId())
                         .cookie(login(owner))
@@ -295,7 +298,7 @@ class RoomIntegrationTest {
         assertThat(saved.getTotalBudget()).isEqualTo(room.getTotalBudget());
         assertThat(saved.getAvailableBudget()).isEqualTo(room.getAvailableBudget());
         assertThat(saved.getCurrency()).isEqualTo(room.getCurrency());
-        assertThat(saved.getCreatedAt()).isEqualTo(room.getCreatedAt());
+        assertThat(saved.getCreatedAt()).isEqualTo(originalCreatedAt);
     }
 
     @Test

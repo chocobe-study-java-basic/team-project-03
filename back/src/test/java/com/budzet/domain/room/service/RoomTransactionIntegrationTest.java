@@ -12,6 +12,7 @@ import com.budzet.domain.room.repository.RoomRepository;
 import com.budzet.domain.room.repository.UserRoomConnectionRepository;
 import com.budzet.domain.user.entity.User;
 import com.budzet.domain.user.repository.UserRepository;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -64,8 +65,14 @@ class RoomTransactionIntegrationTest {
         User owner = createUser();
         Room existingRoom = roomRepository.save(Room.create("기존 모임", 50_000L, Currency.USD));
         roomIds.add(existingRoom.getId());
-        UserRoomConnection existingConnection = connectionRepository.save(
+        connectionRepository.save(
                 UserRoomConnection.createOwner(owner, existingRoom));
+        // 최초 객체의 나노초 값 대신 DB에 저장된 정밀도의 시간을 기준으로 비교한다.
+        LocalDateTime originalRoomCreatedAt = roomRepository.findById(existingRoom.getId())
+                .orElseThrow().getCreatedAt();
+        LocalDateTime originalConnectionCreatedAt = connectionRepository
+                .findByUser_IdAndRoom_Id(owner.getId(), existingRoom.getId())
+                .orElseThrow().getCreatedAt();
 
         User deletedUser = createUser();
         Long deletedUserId = deletedUser.getId();
@@ -94,12 +101,12 @@ class RoomTransactionIntegrationTest {
         assertThat(preservedRoom.getTotalBudget()).isEqualTo(50_000L);
         assertThat(preservedRoom.getAvailableBudget()).isEqualTo(50_000L);
         assertThat(preservedRoom.getCurrency()).isEqualTo(Currency.USD);
-        assertThat(preservedRoom.getCreatedAt()).isEqualTo(existingRoom.getCreatedAt());
+        assertThat(preservedRoom.getCreatedAt()).isEqualTo(originalRoomCreatedAt);
         UserRoomConnection preservedConnection = connectionRepository
                 .findByUser_IdAndRoom_Id(owner.getId(), existingRoom.getId()).orElseThrow();
         assertThat(preservedConnection.getAuthority()).isEqualTo(Authority.OWNER);
         assertThat(preservedConnection.isJoined()).isTrue();
-        assertThat(preservedConnection.getCreatedAt()).isEqualTo(existingConnection.getCreatedAt());
+        assertThat(preservedConnection.getCreatedAt()).isEqualTo(originalConnectionCreatedAt);
         assertThat(connectionRepository.findAllByRoom_Id(existingRoom.getId())).hasSize(1);
         User preservedOwner = userRepository.findById(owner.getId()).orElseThrow();
         assertThat(preservedOwner.getEmail()).isEqualTo(owner.getEmail());
