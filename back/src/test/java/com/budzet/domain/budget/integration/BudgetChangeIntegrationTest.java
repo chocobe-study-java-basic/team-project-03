@@ -430,7 +430,7 @@ class BudgetChangeIntegrationTest {
                 .orElseThrow();
 
         assertEquals(
-                BudgetRequestType.SETTLEMENT.name(),
+                BudgetRequestType.SETTLEMENT,
                 updatedRequest.getStatus()
         );
 
@@ -482,7 +482,7 @@ class BudgetChangeIntegrationTest {
                 .orElseThrow();
 
         assertEquals(
-                BudgetRequestType.APPROVE.name(),
+                BudgetRequestType.APPROVE,
                 unchangedRequest.getStatus()
         );
 
@@ -546,7 +546,7 @@ class BudgetChangeIntegrationTest {
                 .orElseThrow();
 
         assertEquals(
-                BudgetRequestType.REQUEST.name(),
+                BudgetRequestType.REQUEST,
                 unchangedRequest.getStatus()
         );
 
@@ -605,7 +605,7 @@ class BudgetChangeIntegrationTest {
                 .orElseThrow();
 
         assertEquals(
-                BudgetRequestType.SETTLEMENT.name(),
+                BudgetRequestType.SETTLEMENT,
                 updatedRequest.getStatus()
         );
 
@@ -660,7 +660,7 @@ class BudgetChangeIntegrationTest {
                 .orElseThrow();
 
         assertEquals(
-                BudgetRequestType.SETTLEMENT.name(),
+                BudgetRequestType.SETTLEMENT,
                 updatedRequest.getStatus()
         );
 
@@ -899,7 +899,7 @@ class BudgetChangeIntegrationTest {
                 updatedRequest.getUser().getId()
         );
         assertEquals(
-                BudgetRequestType.SETTLEMENT.name(),
+                BudgetRequestType.SETTLEMENT,
                 updatedRequest.getStatus()
         );
     }
@@ -959,7 +959,7 @@ class BudgetChangeIntegrationTest {
         assertEquals(5000L, unchangedRequest.getRequestedAmount());
         assertEquals("테스트 예산 신청", unchangedRequest.getReason());
         assertEquals(
-                BudgetRequestType.SETTLEMENT.name(),
+                BudgetRequestType.SETTLEMENT,
                 unchangedRequest.getStatus()
         );
     }
@@ -1184,7 +1184,7 @@ class BudgetChangeIntegrationTest {
         assertEquals(5000L, unchangedRequest.getRequestedAmount());
         assertEquals("테스트 예산 신청", unchangedRequest.getReason());
         assertEquals(
-                BudgetRequestType.SETTLEMENT.name(),
+                BudgetRequestType.SETTLEMENT,
                 unchangedRequest.getStatus()
         );
     }

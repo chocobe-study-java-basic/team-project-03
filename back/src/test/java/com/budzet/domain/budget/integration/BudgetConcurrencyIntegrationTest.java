@@ -266,7 +266,7 @@ class BudgetConcurrencyIntegrationTest {
                         .orElseThrow();
 
         assertEquals(
-                BudgetRequestType.SETTLEMENT.name(),
+                BudgetRequestType.SETTLEMENT,
                 updatedRequest.getStatus()
         );
 
@@ -390,7 +390,7 @@ class BudgetConcurrencyIntegrationTest {
                         .orElseThrow();
 
         assertEquals(
-                BudgetRequestType.SETTLEMENT.name(),
+                BudgetRequestType.SETTLEMENT,
                 updatedRequest.getStatus()
         );
 

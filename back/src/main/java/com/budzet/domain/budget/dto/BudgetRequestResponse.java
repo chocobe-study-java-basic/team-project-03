@@ -1,5 +1,7 @@
 package com.budzet.domain.budget.dto;
 
+import com.budzet.domain.budget.entity.BudgetRequestType;
+
 import java.time.LocalDateTime;
 
 public record BudgetRequestResponse(
@@ -9,7 +11,7 @@ public record BudgetRequestResponse(
         String userName,
         String reason,
         Long requestedAmount,
-        String status,
+        BudgetRequestType status,
         String rejectReason,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
