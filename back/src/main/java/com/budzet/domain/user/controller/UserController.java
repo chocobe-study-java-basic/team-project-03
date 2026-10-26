@@ -134,4 +134,23 @@ public class UserController {
         );
     }
 
+    @Operation(
+            summary = "내 정보 수정",
+            security = @SecurityRequirement(name = "BearerAuth")
+    )
+    @PatchMapping("/me")
+    public ResponseEntity<ApiResponse<UserDto>> updateProfile(
+            @RequestBody @Valid UserProfileUpdateRequest reqBody
+    ){
+        User actor = rq.getActor();
+
+        User updatedUser = userService.updateProfile(actor.getId(), reqBody.name());
+
+        return ApiResponse.response(
+                HttpStatus.OK,
+                "내 정보가 수정되었습니다.",
+                new UserDto(updatedUser)
+        );
+    }
+
 }

@@ -56,4 +56,8 @@ public class User {
     public void clearRefreshToken() {
         this.refreshToken = null;
     }
+
+    public void updateName(String name){
+        this.name = name;
+    }
 }
