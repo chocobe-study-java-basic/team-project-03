@@ -7,7 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.budzet.controller.HelloController;
+import jakarta.persistence.LockTimeoutException;
+import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,10 +19,12 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -76,9 +81,78 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.data[0].message").value("이름은 필수입니다."));
     }
 
+    @Test
+    @DisplayName("숫자 경로 변수에 문자열을 전달하면 공통 400 응답을 한다.")
+    void pathVariableTypeMismatchReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/test/numeric-id/not-a-number"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.resultCode").value(400))
+                .andExpect(jsonPath("$.message").value("요청 형식이 올바르지 않습니다."))
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("제약 위반 예외의 속성 경로와 메시지를 필드 오류 목록으로 반환한다.")
+    void constraintViolationIncludesPropertyPathAndMessage() throws Exception {
+        mockMvc.perform(get("/test/constraint-violation"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.resultCode").value(400))
+                .andExpect(jsonPath("$.message").value("요청 형식이 올바르지 않습니다."))
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].field").value("name"))
+                .andExpect(jsonPath("$.data[0].message").value("이름은 필수입니다."));
+    }
+
+    @Test
+    @DisplayName("Spring 잠금 실패 예외는 공통 429 응답으로 변환한다.")
+    void pessimisticLockingFailureReturnsTooManyRequests() throws Exception {
+        mockMvc.perform(get("/test/pessimistic-locking-failure"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.resultCode").value(429))
+                .andExpect(jsonPath("$.message").value("현재 다른 요청이 처리 중입니다. 잠시 후 다시 시도해 주세요."))
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("JPA 잠금 시간 초과 예외는 공통 429 응답으로 변환한다.")
+    void lockTimeoutReturnsTooManyRequests() throws Exception {
+        mockMvc.perform(get("/test/lock-timeout"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.resultCode").value(429))
+                .andExpect(jsonPath("$.message").value("현재 다른 요청이 처리 중입니다. 잠시 후 다시 시도해 주세요."))
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
     // 테스트용 컨트롤러
     @RestController
     static class ExceptionTestController {
+
+        @Autowired
+        private Validator validator;
+
+        @GetMapping("/test/numeric-id/{id}")
+        void numericId(@PathVariable Long id) {
+        }
+
+        @GetMapping("/test/constraint-violation")
+        void throwConstraintViolation() {
+            // 실제 Bean Validation 결과로 공통 예외 처리의 변환을 검증한다.
+            throw new ConstraintViolationException(validator.validate(new ValidationRequest("")));
+        }
+
+        @GetMapping("/test/pessimistic-locking-failure")
+        void throwPessimisticLockingFailure() {
+            throw new PessimisticLockingFailureException("테스트 잠금 실패");
+        }
+
+        @GetMapping("/test/lock-timeout")
+        void throwLockTimeout() {
+            throw new LockTimeoutException("테스트 잠금 시간 초과");
+        }
 
         // BusinessException 기본 메시지로 발생시키기
         @GetMapping("/test/business-exception-default-message")
