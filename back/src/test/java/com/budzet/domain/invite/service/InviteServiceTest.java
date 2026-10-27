@@ -1,5 +1,6 @@
 package com.budzet.domain.invite.service;
 
+import com.budzet.domain.notification.service.NotificationService;
 import com.budzet.domain.invite.dto.InviteResponse;
 import com.budzet.domain.invite.dto.InviteJoinResponse;
 import com.budzet.domain.invite.entity.Invite;
@@ -43,6 +44,9 @@ class InviteServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private InviteService inviteService;

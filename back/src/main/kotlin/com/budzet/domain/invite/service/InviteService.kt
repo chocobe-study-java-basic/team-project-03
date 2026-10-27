@@ -1,5 +1,6 @@
 package com.budzet.domain.invite.service
 
+import com.budzet.domain.notification.service.NotificationService
 import com.budzet.domain.invite.dto.InviteJoinResponse
 import com.budzet.domain.invite.dto.InviteResponse
 import com.budzet.domain.invite.entity.Invite
@@ -26,6 +27,7 @@ class InviteService(
     private val roomRepository: RoomRepository,
     private val userRoomConnectionRepository: UserRoomConnectionRepository,
     private val userRepository: UserRepository,
+    private val notificationService: NotificationService,
 ) {
     @Transactional
     fun createInvite(roomId: Long, userId: Long): InviteResponse {
@@ -89,6 +91,7 @@ class InviteService(
         val user = userRepository.getReferenceById(userId)
         val connection = UserRoomConnection.createMember(user, room)
         val savedConnection = userRoomConnectionRepository.save(connection)
+        notificationService.notifyMemberJoined(savedConnection)
         return InviteJoinResponse.from(savedConnection)
     }
 }
