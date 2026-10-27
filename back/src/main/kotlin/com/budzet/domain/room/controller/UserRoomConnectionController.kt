@@ -35,7 +35,7 @@ class UserRoomConnectionController(
 
     @Operation(
         summary = "멤버 강퇴",
-        description = "모임장, 운영자 권한 필요",
+        description = "모임장, 운영자 권한 필요. 대상 멤버의 미정산 신청을 삭제하고 승인 예약 금액을 반환합니다. 정산 완료 기록은 보존합니다.",
         security = [SecurityRequirement(name = "BearerAuth")],
     )
     @DeleteMapping("/{roomId}/members/{userId}")
@@ -45,7 +45,11 @@ class UserRoomConnectionController(
         return ApiResponse.success(HttpStatus.OK, "멤버 강퇴 성공", null)
     }
 
-    @Operation(summary = "모임 탈퇴", security = [SecurityRequirement(name = "BearerAuth")])
+    @Operation(
+        summary = "모임 탈퇴",
+        description = "미정산 신청을 삭제하고 승인 예약 금액을 반환합니다. 정산 완료 기록은 보존합니다.",
+        security = [SecurityRequirement(name = "BearerAuth")],
+    )
     @DeleteMapping("/{roomId}/members/me")
     fun leaveRoom(@PathVariable roomId: Long): ApiResponse<Void> {
         userRoomConnectionService.leaveRoom(roomId, requireNotNull(rq.getActor().id))

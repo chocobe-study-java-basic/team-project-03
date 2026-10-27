@@ -1,12 +1,19 @@
 package com.budzet.domain.room.service;
 
+import com.budzet.domain.budget.entity.BudgetRequest;
+import com.budzet.domain.budget.entity.BudgetRequestType;
+import com.budzet.domain.budget.repository.BudgetRequestRepository;
 import com.budzet.domain.room.dto.MemberResponse;
 import com.budzet.domain.room.entity.Authority;
+import com.budzet.domain.room.entity.Room;
 import com.budzet.domain.room.entity.UserRoomConnection;
 import com.budzet.domain.room.entity.UserRoomConnectionId;
+import com.budzet.domain.room.repository.RoomRepository;
 import com.budzet.domain.room.repository.UserRoomConnectionRepository;
+import com.budzet.domain.user.entity.User;
 import com.budzet.global.exception.BusinessException;
 import com.budzet.global.exception.ErrorCode;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,8 +28,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,6 +43,21 @@ class UserRoomConnectionServiceTest {
     // 가짜 Repository 생성
     @Mock
     private UserRoomConnectionRepository userRoomConnectionRepository;
+
+    @Mock
+    private RoomRepository roomRepository;
+
+    @Mock
+    private BudgetRequestRepository budgetRequestRepository;
+
+    @Mock
+    private Room room;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(roomRepository.findByWithLock(1L)).thenReturn(Optional.of(room));
+        lenient().when(room.getId()).thenReturn(1L);
+    }
 
     // Mockito가 가짜 Repository를 Service에 주입
     @InjectMocks
@@ -315,6 +342,44 @@ class UserRoomConnectionServiceTest {
                 .isEqualTo("멤버를 찾을 수 없습니다.");
     }
 
+
+    @Test
+    @DisplayName("탈퇴 시 승인 신청의 예약 금액만 반환하고 미정산 신청을 삭제한다")
+    void leaveRoom_restoresApprovedReservations() {
+        UserRoomConnection connection = mock(UserRoomConnection.class);
+        when(userRoomConnectionRepository.findByUser_IdAndRoom_Id(2L, 1L))
+                .thenReturn(Optional.of(connection));
+        BudgetRequest pending = new BudgetRequest(room, new User("a", "p", "n"), "대기", 50L);
+        BudgetRequest approved = new BudgetRequest(room, pending.getUser(), "승인", 100L);
+        approved.approveRequest();
+        BudgetRequest rejected = new BudgetRequest(room, pending.getUser(), "반려", 70L);
+        rejected.rejectRequest("반려");
+        List<BudgetRequest> requests = List.of(pending, approved, rejected);
+        when(budgetRequestRepository.findUnsettledByMemberWithLock(1L, 2L,
+                List.of(BudgetRequestType.REQUEST, BudgetRequestType.REJECT, BudgetRequestType.APPROVE)))
+                .thenReturn(requests);
+
+        userRoomConnectionService.leaveRoom(1L, 2L);
+
+        verify(room).updateAvailableBudget(100L);
+        verify(budgetRequestRepository).deleteAll(requests);
+        verify(userRoomConnectionRepository).delete(connection);
+    }
+
+    @Test
+    @DisplayName("방장 탈퇴 실패 시 예산과 신청을 변경하지 않는다")
+    void leaveRoom_ownerForbidden() {
+        UserRoomConnection connection = mock(UserRoomConnection.class);
+        when(connection.getAuthority()).thenReturn(Authority.OWNER);
+        when(userRoomConnectionRepository.findByUser_IdAndRoom_Id(2L, 1L))
+                .thenReturn(Optional.of(connection));
+
+        assertThrows(BusinessException.class, () -> userRoomConnectionService.leaveRoom(1L, 2L));
+
+        verifyNoInteractions(budgetRequestRepository);
+        verify(room, never()).updateAvailableBudget(anyLong());
+        verify(userRoomConnectionRepository, never()).delete(any());
+    }
 
     private void mockMembership() {
         when(userRoomConnectionRepository.existsById(new UserRoomConnectionId(2L, 1L)))
