@@ -355,4 +355,16 @@ class UserServiceTest {
                 exception.getErrorCode()
         );
     }
+
+    @Test
+    @DisplayName("비밀번호 변경 대상 회원이 없으면 암호화를 수행하지 않는다")
+    void updatePassword_userNotFound() {
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> userService.updatePassword(1L, "password123", "newPassword123"));
+
+        assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
+        verifyNoInteractions(passwordEncoder, authTokenService);
+    }
 }

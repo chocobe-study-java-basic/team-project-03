@@ -1,0 +1,9 @@
+package com.budzet.domain.user.dto;
+
+import jakarta.validation.constraints.NotBlank;
+
+public record UserProfileUpdateRequest(
+        @NotBlank(message = "이름을 입력해주세요.")
+        String name
+) {
+}
