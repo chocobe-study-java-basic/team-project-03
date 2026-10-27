@@ -30,7 +30,7 @@ springdoc:
 logging:
   level:
     org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
+    org.hibernate.orm.jdbc.bind: INFO
     com.budzet: DEBUG
 
 custom:
