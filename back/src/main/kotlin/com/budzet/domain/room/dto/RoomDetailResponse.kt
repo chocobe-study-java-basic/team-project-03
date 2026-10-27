@@ -16,8 +16,8 @@ data class RoomDetailResponse(
         fun from(room: Room): RoomDetailResponse = RoomDetailResponse(
             id = room.id,
             name = room.name,
-            totalBudget = room.totalBudget,
-            availableBudget = room.availableBudget,
+            totalBudget = requireNotNull(room.totalBudget),
+            availableBudget = requireNotNull(room.availableBudget),
             currency = room.currency.name,
             createdAt = room.createdAt,
         )

@@ -13,8 +13,8 @@ data class RoomListResponse(
                 RoomItem(
                     id = it.id,
                     name = it.name,
-                    totalBudget = it.totalBudget,
-                    availableBudget = it.availableBudget,
+                    totalBudget = requireNotNull(it.totalBudget),
+                    availableBudget = requireNotNull(it.availableBudget),
                     currency = it.currency.name,
                     createdAt = it.createdAt,
                 )

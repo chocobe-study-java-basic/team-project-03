@@ -490,7 +490,7 @@ class BudgetServiceTest {
         );
 
         // 권한이 없으면 락 조회와 변경 이력 저장이 실행되지 않아야 함
-        verify(roomRepository, never()).findByWithLock(any());
+        verify(roomRepository, never()).findByWithLock(anyLong());
         verify(budgetChangeRepository, never()).save(any());
     }
 
