@@ -36,7 +36,7 @@ monitoring-up:
 	docker compose --profile monitoring up -d prometheus grafana
 
 monitoring-down:
-	docker compose --profile monitoring stop grafana prometheus
+	docker compose --profile monitoring rm -sf grafana prometheus
 
 monitoring-logs:
 	docker compose --profile monitoring logs -f prometheus grafana
