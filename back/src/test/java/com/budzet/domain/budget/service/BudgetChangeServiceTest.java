@@ -107,13 +107,13 @@ class BudgetChangeServiceTest {
 
         // then
         assertNotNull(response);
-        assertEquals(requestId, response.requestId());
-        assertEquals(userId, response.userId());
-        assertEquals(10000L, response.changeBudget());
-        assertEquals(8000L, response.changedBudget());
-        assertEquals(BudgetType.SETTLEMENT, response.budgetType());
-        assertEquals("홍길동", response.userName());
-        assertEquals("실제 장비 구매 영수증 첨부", response.reason());
+        assertEquals(requestId, response.getRequestId());
+        assertEquals(userId, response.getUserId());
+        assertEquals(10000L, response.getChangeBudget());
+        assertEquals(8000L, response.getChangedBudget());
+        assertEquals(BudgetType.SETTLEMENT, response.getBudgetType());
+        assertEquals("홍길동", response.getUserName());
+        assertEquals("실제 장비 구매 영수증 첨부", response.getReason());
 
         // 예산 정산 메서드 호출 검증
         verify(room).settleBudget(10000L, 8000L);
@@ -168,7 +168,7 @@ class BudgetChangeServiceTest {
         );
 
         verify(budgetService, never())
-                .findByRoomIdWithLock(any());
+                .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
                 .save(any());
@@ -222,7 +222,7 @@ class BudgetChangeServiceTest {
 
         // 모임이 일치하지 않으면 락 조회와 저장은 실행되지 않아야 함
         verify(budgetService, never())
-                .findByRoomIdWithLock(any());
+                .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
                 .save(any());
@@ -279,7 +279,7 @@ class BudgetChangeServiceTest {
         );
 
         verify(budgetService, never())
-                .findByRoomIdWithLock(any());
+                .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
                 .save(any());
@@ -336,7 +336,7 @@ class BudgetChangeServiceTest {
         );
 
         verify(budgetService, never())
-                .findByRoomIdWithLock(any());
+                .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
                 .save(any());
@@ -425,7 +425,7 @@ class BudgetChangeServiceTest {
 
         // then
         assertNotNull(response);
-        assertEquals(2, response.changes().size());
+        assertEquals(2, response.getChanges().size());
 
         verify(budgetService)
                 .validateRoomMember(roomId, userId);
@@ -502,7 +502,7 @@ class BudgetChangeServiceTest {
 
         // then
         assertNotNull(response);
-        assertTrue(response.changes().isEmpty());
+        assertTrue(response.getChanges().isEmpty());
 
         verify(budgetService)
                 .validateRoomMember(roomId, userId);
@@ -804,12 +804,12 @@ class BudgetChangeServiceTest {
         assertSame(user, budgetChange.getUser());
 
         // 수정 결과 DTO 검증
-        assertEquals(changeId, response.id());
-        assertEquals(6000L, response.changeBudget());
-        assertEquals(4000L, response.changedBudget());
-        assertEquals("홍길동", response.userName());
-        assertEquals("test@test.com", response.userEmail());
-        assertEquals("수정된 사유", response.reason());
+        assertEquals(changeId, response.getId());
+        assertEquals(6000L, response.getChangeBudget());
+        assertEquals(4000L, response.getChangedBudget());
+        assertEquals("홍길동", response.getUserName());
+        assertEquals("test@test.com", response.getUserEmail());
+        assertEquals("수정된 사유", response.getReason());
 
         // 연결된 신청 내역의 수정 메서드 호출 검증
         verify(budgetRequest)
@@ -871,7 +871,7 @@ class BudgetChangeServiceTest {
                 .findById(anyLong());
 
         verify(budgetService, never())
-                .findByRoomIdWithLock(any());
+                .findByRoomIdWithLock(anyLong());
     }
 
     @Test
@@ -924,7 +924,7 @@ class BudgetChangeServiceTest {
         );
 
         verify(budgetService, never())
-                .findByRoomIdWithLock(any());
+                .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
                 .findById(anyLong());
@@ -995,7 +995,7 @@ class BudgetChangeServiceTest {
                 .findById(anyLong());
 
         verify(budgetService, never())
-                .findByRoomIdWithLock(any());
+                .findByRoomIdWithLock(anyLong());
     }
 
     @Test
@@ -1059,7 +1059,7 @@ class BudgetChangeServiceTest {
         );
 
         verify(budgetService, never())
-                .findByRoomIdWithLock(any());
+                .findByRoomIdWithLock(anyLong());
     }
 
     @Test
@@ -1130,7 +1130,7 @@ class BudgetChangeServiceTest {
 
         // 정산 유형이 아니라면 예산 락 획득과 수정이 진행되지 않아야 함
         verify(budgetService, never())
-                .findByRoomIdWithLock(any());
+                .findByRoomIdWithLock(anyLong());
 
         verify(budgetChange, never())
                 .updateChange(any(), any());
@@ -1207,7 +1207,7 @@ class BudgetChangeServiceTest {
         );
 
         verify(budgetService, never())
-                .findByRoomIdWithLock(any());
+                .findByRoomIdWithLock(anyLong());
     }
 
     @Test

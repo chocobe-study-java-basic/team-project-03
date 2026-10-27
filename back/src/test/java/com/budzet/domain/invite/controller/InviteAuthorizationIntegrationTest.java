@@ -11,6 +11,8 @@ import com.budzet.domain.room.repository.RoomRepository;
 import com.budzet.domain.room.repository.UserRoomConnectionRepository;
 import com.budzet.domain.user.entity.User;
 import com.budzet.domain.user.service.UserService;
+import jakarta.persistence.EntityManager;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -41,6 +45,8 @@ class InviteAuthorizationIntegrationTest {
     @Autowired private RoomRepository roomRepository;
     @Autowired private UserRoomConnectionRepository membershipRepository;
     @Autowired private InviteRepository inviteRepository;
+    @Autowired private EntityManager entityManager;
+    @Autowired private JsonMapper jsonMapper;
 
     private Room room;
     private User owner;
@@ -80,11 +86,84 @@ class InviteAuthorizationIntegrationTest {
     }
 
     private String login(User user) {
-        return userService.login(user.getEmail(), "password123").accessToken();
+        return userService.login(user.getEmail(), "password123").getAccessToken();
     }
 
     private String endpoint(String resource) {
         return "/rooms/" + room.getId() + "/" + resource.replace("{userId}", member.getId().toString());
+    }
+
+    @Test
+    @DisplayName("초대 생성·검증·가입의 기존 HTTP 상태와 JSON 필드를 유지한다")
+    void inviteHttpContractPreservesStatusAndSerializedFields() throws Exception {
+        LocalDateTime beforeCreate = LocalDateTime.now();
+        MvcResult created = mockMvc.perform(post(endpoint("invites"))
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value(201))
+                .andExpect(jsonPath("$.message").value("초대 링크 생성 성공"))
+                .andExpect(jsonPath("$.data.code").isString())
+                .andExpect(jsonPath("$.data.expireAt").isString())
+                .andReturn();
+        String code = jsonMapper.readTree(created.getResponse().getContentAsString())
+                .path("data").path("code").asString();
+        assertEquals(10, code.length());
+        Invite saved = inviteRepository.findById(code).orElseThrow();
+        assertFalse(saved.getExpireAt().isBefore(beforeCreate.plusHours(1)));
+        assertFalse(saved.getExpireAt().isAfter(LocalDateTime.now().plusHours(1)));
+
+        mockMvc.perform(get("/invites/{token}", code)
+                        .header("Authorization", "Bearer " + outsiderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value(200))
+                .andExpect(jsonPath("$.message").value("초대 링크 검증 성공"))
+                .andExpect(jsonPath("$.data.code").value(code))
+                .andExpect(jsonPath("$.data.expireAt").isString());
+        mockMvc.perform(post("/rooms/join/{code}", code)
+                        .header("Authorization", "Bearer " + outsiderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value(201))
+                .andExpect(jsonPath("$.message").value("모임에 참여하였습니다."))
+                .andExpect(jsonPath("$.data.userId").value(outsider.getId()))
+                .andExpect(jsonPath("$.data.roomId").value(room.getId()))
+                .andExpect(jsonPath("$.data.authority").value("MEMBER"))
+                .andExpect(jsonPath("$.data.joined").value(true))
+                .andExpect(jsonPath("$.data.createdAt").isString());
+        membershipRepository.flush();
+        entityManager.clear();
+        UserRoomConnection connection = membershipRepository.findById(
+                new UserRoomConnectionId(outsider.getId(), room.getId())).orElseThrow();
+        assertEquals(Authority.MEMBER, connection.getAuthority());
+        assertTrue(connection.isJoined());
+        assertNotNull(connection.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("초대 저장·감사·프록시·모임 지연 로딩이 영속성 컨텍스트를 비운 뒤에도 동작한다")
+    void invitePersistenceSupportsAuditingProxyAndLazyRoom() {
+        String code = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        LocalDateTime expireAt = LocalDateTime.now().plusHours(1).withNano(0);
+        Invite invite = new Invite(code, room, expireAt);
+        assertNull(invite.getCreatedAt());
+        Invite saved = inviteRepository.saveAndFlush(invite);
+        assertNotNull(saved.getCreatedAt());
+        Long roomId = room.getId();
+        entityManager.clear();
+
+        Invite reference = entityManager.getReference(Invite.class, code);
+        assertFalse(Hibernate.isInitialized(reference));
+        assertEquals(expireAt, reference.getExpireAt());
+        assertTrue(Hibernate.isInitialized(reference));
+        assertNotNull(reference.getCreatedAt());
+        assertFalse(Hibernate.isInitialized(reference.getRoom()));
+        assertEquals(roomId, reference.getRoom().getId());
+        assertEquals("권한 테스트", reference.getRoom().getName());
+        assertTrue(Hibernate.isInitialized(reference.getRoom()));
+        entityManager.clear();
+        Invite reloaded = inviteRepository.findById(code).orElseThrow();
+        assertEquals(code, reloaded.getCode());
+        assertEquals(expireAt, reloaded.getExpireAt());
+        assertEquals(roomId, reloaded.getRoom().getId());
     }
 
     @Test

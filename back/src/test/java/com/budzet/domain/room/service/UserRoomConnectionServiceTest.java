@@ -115,13 +115,13 @@ class UserRoomConnectionServiceTest {
 
         assertEquals(2, result.size());
 
-        assertEquals(1L, result.get(0).userId());
-        assertEquals("홍길동", result.get(0).name());
-        assertEquals(Authority.OWNER, result.get(0).authority());
+        assertEquals(1L, result.get(0).getUserId());
+        assertEquals("홍길동", result.get(0).getName());
+        assertEquals(Authority.OWNER, result.get(0).getAuthority());
 
-        assertEquals(2L, result.get(1).userId());
-        assertEquals("김철수", result.get(1).name());
-        assertEquals(Authority.MEMBER, result.get(1).authority());
+        assertEquals(2L, result.get(1).getUserId());
+        assertEquals("김철수", result.get(1).getName());
+        assertEquals(Authority.MEMBER, result.get(1).getAuthority());
     }
 
     @Test

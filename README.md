@@ -154,7 +154,8 @@ UserRoomConnection
 
 ### Backend
 
-![Java](https://img.shields.io/badge/Java%2025-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin%202.4.21-7F52FF?style=flat-square&logo=kotlin&logoColor=white)
+![Java](https://img.shields.io/badge/JDK%2025-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?style=flat-square&logo=springboot&logoColor=white)
 ![Spring Data JPA](https://img.shields.io/badge/Spring%20Data%20JPA-6DB33F?style=flat-square&logo=spring&logoColor=white)
 ![Spring Security](https://img.shields.io/badge/Spring%20Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white)
@@ -370,6 +371,9 @@ PUT  /rooms/{roomId}/budget/changes/{changeId}
 
 ## 1. Backend
 
+JDK 25와 MySQL이 필요합니다. 운영 코드는 Kotlin이며 기존 Java 테스트를 유지합니다. Lombok은 사용하지 않습니다.
+DB 접속 정보와 JWT 비밀값은 `back/env.example.sh`를 참고해 환경 변수로 설정합니다.
+
 ```bash
 cd back
 
@@ -382,6 +386,16 @@ Backend:
 ```text
 http://localhost:8080
 ```
+
+### Kotlin 코드 작업 기준
+
+- 운영 소스는 `back/src/main/kotlin`, 기존 Java 테스트는 `back/src/test/java`에서 관리합니다.
+- 요청 DTO는 누락·null 입력이 기존 Bean Validation으로 처리되도록 nullable 기본값과 `@field:` 검증을 유지합니다. JSON 필드명과 null 직렬화 계약도 확인합니다.
+- JPA 엔티티는 일반 open class와 protected setter를 사용합니다. 저장 전 ID·감사 일시와 선택적 연관 관계의 nullable 상태를 유지하고, DTO용 data class와 구분합니다.
+- Java 테스트에서 사용하는 getter·생성자·`@JvmStatic` 팩터리를 유지합니다. 트랜잭션·잠금·재시도·권한 정책 변경은 별도 작업으로 검토합니다.
+- 변경 후 `./gradlew test bootJar`로 검증합니다. 전체 테스트의 MySQL 동시성 검증에는 Docker가 필요합니다.
+
+마이그레이션에서는 기존 동작을 보존했습니다. 초대 생성·가입의 HTTP 상태와 본문 코드 차이, 초대 조회 실패 예외의 통일, 보안 접근 거부 JSON 형식, MySQL 테스트 종료 시 연결 정리 경고는 별도 후속 검토 항목입니다. 테스트의 Kotlin 전환과 정적 분석·스타일 도구 도입도 후속 작업으로 진행합니다.
 
 ## 2. Frontend
 

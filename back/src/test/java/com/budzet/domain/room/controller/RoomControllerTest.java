@@ -220,8 +220,8 @@ class RoomControllerTest {
     void createRoom_acceptsBoundaryValues(String scenario, RoomCreateRequest request) throws Exception {
         User actor = actor(1L);
         RoomCreateResponse response = new RoomCreateResponse(
-                10L, request.name(), request.totalBudget(), request.totalBudget(),
-                request.currency().name(), LocalDateTime.now()
+                10L, request.getName(), request.getTotalBudget(), request.getTotalBudget(),
+                request.getCurrency().name(), LocalDateTime.now()
         );
         when(rq.getActor()).thenReturn(actor);
         when(roomService.createRoom(1L, request)).thenReturn(response);
@@ -231,9 +231,9 @@ class RoomControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.resultCode").value(201))
-                .andExpect(jsonPath("$.data.name").value(request.name()))
-                .andExpect(jsonPath("$.data.totalBudget").value(request.totalBudget()))
-                .andExpect(jsonPath("$.data.availableBudget").value(request.totalBudget()));
+                .andExpect(jsonPath("$.data.name").value(request.getName()))
+                .andExpect(jsonPath("$.data.totalBudget").value(request.getTotalBudget()))
+                .andExpect(jsonPath("$.data.availableBudget").value(request.getTotalBudget()));
 
         verify(roomService).createRoom(1L, request);
     }
@@ -278,7 +278,7 @@ class RoomControllerTest {
         User actor = actor(1L);
         RoomUpdateRequest request = new RoomUpdateRequest("가".repeat(20));
         RoomDetailResponse response = new RoomDetailResponse(
-                10L, request.name(), 100_000L, 100_000L, "KRW", LocalDateTime.now()
+                10L, request.getName(), 100_000L, 100_000L, "KRW", LocalDateTime.now()
         );
         when(rq.getActor()).thenReturn(actor);
         when(roomService.updateRoom(1L, 10L, request)).thenReturn(response);
@@ -288,7 +288,7 @@ class RoomControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value(200))
-                .andExpect(jsonPath("$.data.name").value(request.name()));
+                .andExpect(jsonPath("$.data.name").value(request.getName()));
 
         verify(roomService).updateRoom(1L, 10L, request);
     }

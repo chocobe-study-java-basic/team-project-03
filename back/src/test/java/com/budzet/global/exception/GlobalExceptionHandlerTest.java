@@ -1,12 +1,14 @@
 package com.budzet.global.exception;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.budzet.controller.HelloController;
+import com.budzet.global.api.ApiResponse;
 import jakarta.persistence.LockTimeoutException;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
@@ -20,16 +22,20 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.databind.ObjectMapper;
 
-@WebMvcTest(controllers = {HelloController.class, GlobalExceptionHandlerTest.ExceptionTestController.class})
+@WebMvcTest(controllers = GlobalExceptionHandlerTest.ExceptionTestController.class)
 @Import(GlobalExceptionHandler.class)
 @ContextConfiguration(classes = GlobalExceptionHandlerTest.TestApplication.class)
 class GlobalExceptionHandlerTest {
@@ -37,10 +43,13 @@ class GlobalExceptionHandlerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
     @DisplayName("정상 응답을 한다.")
     void successResponseUsesCommonFormat() throws Exception {
-        mockMvc.perform(get("/api/hello"))
+        mockMvc.perform(get("/test/success-with-data"))
                 .andExpect(status().isCreated())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.resultCode").value(201))
@@ -55,7 +64,8 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value(404))
                 .andExpect(jsonPath("$.message").value("요청한 리소스를 찾을 수 없습니다."))
-                .andExpect(jsonPath("$.data").doesNotExist());
+                .andExpect(jsonPath("$.data").hasJsonPath())
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -127,12 +137,63 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.data").doesNotExist());
     }
 
+    @Test
+    @DisplayName("데이터 없는 성공 응답은 data 필드를 명시적 null로 반환한다.")
+    void successResponsePreservesExplicitNullData() throws Exception {
+        mockMvc.perform(get("/test/success-without-data"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value(200))
+                .andExpect(jsonPath("$.message").value("처리되었습니다."))
+                .andExpect(jsonPath("$.data").hasJsonPath())
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("명시적으로 null을 지정한 예외 메시지는 기본 메시지로 대체하지 않는다.")
+    void businessExceptionPreservesExplicitNullMessage() throws Exception {
+        mockMvc.perform(get("/test/business-exception-null-message"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value(404))
+                .andExpect(jsonPath("$.message").hasJsonPath())
+                .andExpect(jsonPath("$.message").value(nullValue()))
+                .andExpect(jsonPath("$.data").hasJsonPath())
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("기본 메시지 없는 필드 오류를 null 메시지로 변환하고 직렬화한다.")
+    void fieldErrorPreservesMissingDefaultMessage() {
+        FieldErrorResponse response = FieldErrorResponse.from(new FieldError("request", "name", null));
+        var json = objectMapper.readTree(objectMapper.writeValueAsString(response));
+
+        assertThat(json.get("field").asText()).isEqualTo("name");
+        assertThat(json.has("message")).isTrue();
+        assertThat(json.get("message").isNull()).isTrue();
+    }
+
     // 테스트용 컨트롤러
     @RestController
     static class ExceptionTestController {
 
         @Autowired
         private Validator validator;
+
+        @GetMapping("/test/success-with-data")
+        ResponseEntity<ApiResponse<String>> successWithData() {
+            ApiResponse<String> response = ApiResponse.success(
+                    HttpStatus.CREATED, "데이터를 생성하였습니다.", "Hello, Budzet!");
+            return ResponseEntity.status(response.getResultCode()).body(response);
+        }
+
+        @GetMapping("/test/success-without-data")
+        ApiResponse<Void> successWithoutData() {
+            return ApiResponse.success(HttpStatus.OK, "처리되었습니다.", null);
+        }
+
+        @GetMapping("/test/business-exception-null-message")
+        void throwBusinessExceptionWithNullMessage() {
+            throw new BusinessException(ErrorCode.NOT_FOUND, null);
+        }
 
         @GetMapping("/test/numeric-id/{id}")
         void numericId(@PathVariable Long id) {
@@ -181,7 +242,6 @@ class GlobalExceptionHandlerTest {
     @SpringBootConfiguration
     @EnableAutoConfiguration
     @Import({
-            HelloController.class,
             ExceptionTestController.class,
             GlobalExceptionHandler.class
     })
