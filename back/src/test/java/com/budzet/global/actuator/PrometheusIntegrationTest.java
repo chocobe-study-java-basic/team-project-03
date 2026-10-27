@@ -100,6 +100,17 @@ class PrometheusIntegrationTest {
     }
 
     @Test
+    @DisplayName("수집 전용 인증으로 HEAD 조회가 가능하고 본문은 반환하지 않는다")
+    void scrapeHead() throws Exception {
+        HttpResponse<String> response = send(HttpRequest.newBuilder(uri("/actuator/prometheus"))
+                .header("Authorization", basic("prometheus", "test-scrape-password"))
+                .method("HEAD", HttpRequest.BodyPublishers.noBody()));
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).isEmpty();
+        assertThat(response.headers().allValues("Set-Cookie")).isEmpty();
+    }
+
+    @Test
     @DisplayName("브라우저의 잘못된 JWT 쿠키가 수집 전용 인증을 방해하지 않는다")
     void ignoreJwtCookieOnScrape() throws Exception {
         HttpResponse<String> response = send(HttpRequest.newBuilder(uri("/actuator/prometheus"))
