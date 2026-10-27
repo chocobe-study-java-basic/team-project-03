@@ -80,7 +80,7 @@ class InviteAuthorizationIntegrationTest {
     }
 
     private String login(User user) {
-        return userService.login(user.getEmail(), "password123").accessToken();
+        return userService.login(user.getEmail(), "password123").getAccessToken();
     }
 
     private String endpoint(String resource) {

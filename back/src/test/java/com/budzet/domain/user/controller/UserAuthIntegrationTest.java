@@ -4,6 +4,7 @@ import com.budzet.domain.user.dto.UserJoinRequest;
 import com.budzet.domain.user.dto.UserLoginRequest;
 import com.budzet.domain.user.dto.UserProfileUpdateRequest;
 import jakarta.servlet.http.Cookie;
+import jakarta.persistence.EntityManager;
 import com.budzet.domain.user.entity.User;
 import com.budzet.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -18,6 +19,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
+import org.hibernate.Hibernate;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.UUID;
@@ -59,6 +62,9 @@ class UserAuthIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @Value("${custom.jwt.access-expire-millis}")
     private long accessExpireMillis;
 
@@ -77,6 +83,48 @@ class UserAuthIntegrationTest {
     void tearDown() {
         // 다른 테스트의 데이터는 건드리지 않고 이 테스트에서 만든 회원만 정리한다.
         userRepository.findByEmail(email).ifPresent(userRepository::delete);
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("회원 엔티티의 프록시·지연 로딩·감사와 변경 감지를 유지한다")
+    void userPersistenceSupportsProxyAuditingAndDirtyChecking() {
+        User user = new User(email, "encodedPassword", "기존 이름");
+        assertNull(user.getId());
+        assertNull(user.getCreatedAt());
+        assertNull(user.getModifiedAt());
+        assertNull(user.getRefreshToken());
+        assertTrue(user.getRoomConnections().isEmpty());
+
+        entityManager.persist(user);
+        entityManager.flush();
+        Long id = user.getId();
+        assertNotNull(id);
+        assertNotNull(user.getCreatedAt());
+        assertNotNull(user.getModifiedAt());
+        entityManager.clear();
+
+        User reference = entityManager.getReference(User.class, id);
+        assertFalse(Hibernate.isInitialized(reference));
+        assertEquals(email, reference.getEmail());
+        assertTrue(Hibernate.isInitialized(reference));
+        assertFalse(Hibernate.isInitialized(reference.getRoomConnections()));
+        assertTrue(reference.getRoomConnections().isEmpty());
+        assertTrue(Hibernate.isInitialized(reference.getRoomConnections()));
+
+        reference.updateName("변경된 이름");
+        reference.updateRefreshToken("saved-refresh-token");
+        entityManager.flush();
+        entityManager.clear();
+
+        User reloaded = entityManager.find(User.class, id);
+        assertEquals("변경된 이름", reloaded.getName());
+        assertEquals("saved-refresh-token", reloaded.getRefreshToken());
+        assertNotNull(reloaded.getModifiedAt());
+        reloaded.clearRefreshToken();
+        entityManager.flush();
+        entityManager.clear();
+        assertNull(entityManager.find(User.class, id).getRefreshToken());
     }
 
     @Test

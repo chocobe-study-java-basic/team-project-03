@@ -119,8 +119,8 @@ class UserServiceTest {
                 userService.login(email, password);
 
         // then
-        assertEquals(accessToken, response.accessToken());
-        assertEquals(refreshToken, response.refreshToken());
+        assertEquals(accessToken, response.getAccessToken());
+        assertEquals(refreshToken, response.getRefreshToken());
 
         // DB에 저장될 User의 Refresh Token도 변경되었는지 확인
         assertEquals(refreshToken, user.getRefreshToken());
@@ -174,8 +174,8 @@ class UserServiceTest {
                 userService.refresh(oldRefreshToken);
 
         // then
-        assertEquals(newAccessToken, response.accessToken());
-        assertEquals(newRefreshToken, response.refreshToken());
+        assertEquals(newAccessToken, response.getAccessToken());
+        assertEquals(newRefreshToken, response.getRefreshToken());
 
         // 기존 RT가 새 RT로 교체됐는지 확인
         assertEquals(newRefreshToken, user.getRefreshToken());

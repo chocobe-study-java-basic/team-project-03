@@ -55,8 +55,8 @@ class UserControllerTest {
         assertEquals(201, response.getStatusCode().value());
         assertEquals(201, body.getResultCode());
         assertEquals("회원가입이 완료되었습니다.", body.getMessage());
-        assertEquals(email, body.getData().email());
-        assertEquals(name, body.getData().name());
+        assertEquals(email, body.getData().getEmail());
+        assertEquals(name, body.getData().getName());
 
         verify(service).join(email, password, name);
     }
@@ -121,10 +121,10 @@ class UserControllerTest {
         assertEquals(200, body.getResultCode());
         assertEquals("로그인에 성공했습니다.", body.getMessage());
 
-        assertEquals(accessToken, body.getData().accessToken());
-        assertEquals(refreshToken, body.getData().refreshToken());
-        assertEquals(email, body.getData().user().email());
-        assertEquals("user1", body.getData().user().name());
+        assertEquals(accessToken, body.getData().getAccessToken());
+        assertEquals(refreshToken, body.getData().getRefreshToken());
+        assertEquals(email, body.getData().getUser().getEmail());
+        assertEquals("user1", body.getData().getUser().getName());
 
         verify(service).login(email, password);
 
@@ -194,12 +194,12 @@ class UserControllerTest {
 
         assertEquals(
                 newAccessToken,
-                body.getData().accessToken()
+                body.getData().getAccessToken()
         );
 
         assertEquals(
                 newRefreshToken,
-                body.getData().refreshToken()
+                body.getData().getRefreshToken()
         );
 
         verify(service)
@@ -313,9 +313,9 @@ class UserControllerTest {
         assertEquals(200, body.getResultCode());
         assertEquals("내 정보 조회에 성공했습니다.", body.getMessage());
 
-        assertEquals(1L, body.getData().id());
-        assertEquals("user1@test.com", body.getData().email());
-        assertEquals("user1", body.getData().name());
+        assertEquals(1L, body.getData().getId());
+        assertEquals("user1@test.com", body.getData().getEmail());
+        assertEquals("user1", body.getData().getName());
 
         verify(rq).getActor();
     }
