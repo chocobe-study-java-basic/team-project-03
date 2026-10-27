@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다."),
     PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다."),
+    PASSWORD_UNCHANGED(HttpStatus.BAD_REQUEST, "새 비밀번호는 현재 비밀번호와 달라야 합니다."),
     INVALID_AUTHORIZATION_HEADER(HttpStatus.UNAUTHORIZED, "Authorization 헤더 형식이 올바르지 않습니다."),
     INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "유효한 Access Token이 아닙니다."),
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "유효한 Refresh Token이 아닙니다."),
@@ -35,9 +36,9 @@ public enum ErrorCode {
     NOT_BUDGET_REQUESTER(HttpStatus.FORBIDDEN, "예산 신청자가 아닙니다."),
     ROOM_MANAGER_REQUIRED(HttpStatus.FORBIDDEN, "모임을 관리할 권한이 없습니다."),
     INVALID_AUTHORITY(HttpStatus.BAD_REQUEST,"변경할 수 없는 권한입니다."),
-    NOT_APPROVABLE(HttpStatus.FORBIDDEN, "정산, 승인 상태의 신청은 승인할 수 없습니다."),
-    NOT_REJECTABLE(HttpStatus.FORBIDDEN, "정산, 반려 상태의 신청은 반려할 수 없습니다."),
-    NOT_MODIFYABLE(HttpStatus.FORBIDDEN, "정산 상태의 신청은 수정할 수 없습니다."),
+    NOT_APPROVABLE(HttpStatus.CONFLICT, "정산, 반려, 승인 상태의 신청은 승인할 수 없습니다."),
+    NOT_REJECTABLE(HttpStatus.CONFLICT, "정산, 반려, 승인 상태의 신청은 반려할 수 없습니다."),
+    NOT_MODIFYABLE(HttpStatus.CONFLICT, "정산 상태의 신청은 수정할 수 없습니다."),
     LOCKED_RESOURCE(HttpStatus.TOO_MANY_REQUESTS,"현재 다른 요청이 처리 중입니다. 잠시 후 다시 시도해 주세요.");
 
     private final HttpStatus status;

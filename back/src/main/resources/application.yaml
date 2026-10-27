@@ -16,6 +16,11 @@ spring:
         format_sql: true
         use_sql_comments: true
 
+management:
+  endpoints:
+    access:
+      default: none
+
 springdoc:
   default-produces-media-type: application/json
   swagger-ui:
@@ -34,3 +39,29 @@ custom:
     access-expire-millis: "#{1000L * 60 * 60}" #1시간
     refresh-secret: ${REFRESH_SECRET}
     refresh-expire-millis: "#{1000L * 60 * 60 * 24 * 7}" #1주일
+
+---
+
+# 개발 환경의 Actuator 설정
+spring:
+  config:
+    activate:
+      on-profile: "!prod & !test"
+
+management:
+  endpoint:
+    health:
+      access: read-only
+      show-details: never
+    metrics:
+      access: read-only
+    prometheus:
+      access: read-only
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+
+custom:
+  monitoring:
+    password: ${PROMETHEUS_PASSWORD:}

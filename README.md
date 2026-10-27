@@ -643,7 +643,7 @@ https://chocobe.cloud
 
 프로젝트 루트에서 Makefile 명령으로 로컬 개발 환경을 관리합니다.
 
-### 전체 서비스 실행
+### 기본 개발 서비스 실행 (MySQL)
 
 ```bash
 make dev-up
@@ -659,7 +659,7 @@ make dev-down
 
 ### 컨테이너와 DB 데이터 전체 초기화
 
-named volume을 포함한 로컬 DB 데이터가 모두 삭제됩니다.
+named volume을 포함한 로컬 DB 데이터가 모두 삭제됩니다. 모니터링 컨테이너를 삭제한 후 사용하면 Prometheus·Grafana 데이터 볼륨도 삭제될 수 있습니다.
 
 ```bash
 make dev-down-reset
@@ -672,3 +672,113 @@ make dev-down-reset
 ```bash
 make db-logs
 ```
+
+## 개발 환경 모니터링 (선택)
+
+백엔드는 기존처럼 IntelliJ에서 `8080`으로 실행합니다.
+
+Docker Desktop의 Prometheus가 `host.docker.internal:8080/actuator/prometheus`에서 15초마다 지표를 수집하고, Grafana는 Docker 내부 주소 `http://prometheus:9090`으로 저장된 지표를 조회합니다.
+
+별도의 Docker 네트워크 생성은 필요하지 않습니다. 
+
+Compose 기본 네트워크를 사용합니다.
+
+이 구성은 macOS·Windows Docker Desktop의 로컬 개발용입니다.
+
+### 최초 준비와 실행
+
+프로젝트 루트에서 Python 3를 사용해 비밀번호 파일을 준비합니다. 
+
+기존 파일은 덮어쓰지 않습니다.
+
+```bash
+make monitoring-init
+```
+
+| 파일 | 사용 위치 |
+| --- | --- |
+| `monitoring/secrets/prometheus-password` | IntelliJ의 `PROMETHEUS_PASSWORD` 환경 변수와 Prometheus 수집 인증 |
+| `monitoring/secrets/grafana-admin-password` | Grafana의 `admin` 계정 초기 비밀번호 |
+
+IntelliJ의 백엔드 Run Configuration에 `PROMETHEUS_PASSWORD`를 추가하고, 첫 번째 파일의 **내용**을 마지막 줄바꿈 없이 입력합니다.
+
+기존 JWT 환경 변수는 유지합니다.
+
+설정 후 백엔드를 완전히 중지하고 다시 실행합니다.
+
+새 Spring 프로필을 추가할 필요는 없습니다.
+
+개발용 엔드포인트는 `prod`와 `test` 프로필에서 비활성화됩니다.
+
+```bash
+make monitoring-up
+```
+
+| 서비스 | 브라우저 주소 | 인증 |
+| --- | --- | --- |
+| Prometheus | http://localhost:9090 | 로컬 조회 화면은 별도 로그인 없음 |
+| Grafana | http://localhost:3001 | 사용자 `admin`, `grafana-admin-password` 파일 내용 |
+
+두 화면은 호스트의 `127.0.0.1`에만 공개됩니다.
+
+Grafana 3001번 포트는 프론트엔드 3000번과 구분합니다.
+
+Grafana에서는 **Budzet → Budzet Overview** 대시보드가 자동 등록되고 기본 홈 화면으로 표시됩니다.
+
+로그인 상태에서는 http://localhost:3001/d/budzet-overview 로도 접근할 수 있습니다.
+
+Grafana 로그인은 백엔드 사용자 JWT 로그인과 별개입니다.
+
+`/actuator/prometheus`에는 수집 전용 Basic 인증을 사용하고, 기존 API와 `/actuator/health`, `/actuator/metrics`는 JWT 인증을 유지합니다.
+
+Grafana에는 백엔드 수집 비밀번호를 전달하지 않습니다.
+
+`monitoring/secrets/`는 Git에서 제외되므로 각 개발자가 로컬에서 생성합니다.
+
+### 기본 대시보드와 확인 방법
+
+| 패널 | 의미 |
+| --- | --- |
+| 수집 상태 | `UP`: 최근 수집 성공, `DOWN`: 최근 수집 실패. `No data`: 조회할 수집 기록 없음 |
+| JVM 힙 메모리 | 사용 중인 힙 메모리 합계. 프로세스 전체 메모리 사용량과는 다름 |
+| JVM 스레드 | JVM 내부 작업을 포함한 현재 스레드 수 |
+| HTTP 초당 요청 수 | 경로·메서드별 요청 발생 속도. Actuator 호출 제외 |
+| HTTP 평균 응답 시간 | 최근 구간의 경로·메서드별 평균 처리 시간(ms). Actuator 호출 제외 |
+
+1. Prometheus의 **Status → Target health**에서 `budzet`이 `UP`인지 확인합니다.
+2. Grafana에 로그인하여 수집 상태와 JVM 그래프를 확인합니다.
+3. Swagger에서 백엔드 사용자로 로그인한 후 `GET /rooms`를 여러 번 호출합니다.
+4. 수집 주기(15초)를 기다린 후 Grafana의 **Refresh**를 눌러 HTTP 그래프의 해당 경로를 확인합니다.
+
+HTTP 지표는 최초 요청 이후 수집되며, 초당 요청 수와 평균 시간은 여러 수집 샘플이 필요합니다.
+
+요청이 없는 구간의 평균 응답 시간은 비어 있을 수 있습니다.
+
+`UP`은 지표 수집 성공을 의미하며, 모든 업무 API가 정상임을 보장하지는 않습니다.
+
+`401`로 수집이 실패하면 IntelliJ 환경 변수와 `prometheus-password` 파일 내용이 같은지 확인하고 백엔드를 재시작합니다.
+
+### 설정 관리와 종료
+
+연결 설정은 `monitoring/grafana/provisioning/`, 기본 대시보드는 `monitoring/grafana/dashboards/budzet-overview.json`으로 관리합니다.
+
+기본 대시보드는 화면에서 수정·저장하지 않도록 구성했습니다.
+
+개인 실험은 복사본으로 진행합니다.
+
+대시보드 JSON 변경은 약 30초 내 반영되며, 연결 설정 변경은 Grafana 재시작이 필요합니다.
+
+```bash
+make monitoring-logs
+make monitoring-down
+```
+
+`monitoring-down`은 두 모니터링 서비스를 중지하며 MySQL은 계속 실행합니다.
+
+`make monitoring-up`으로 다시 시작할 수 있습니다.
+
+Prometheus는 지표를 3일간 보관하고, Grafana의 계정·개인 설정은 `grafana-data` 볼륨에 보관합니다.
+
+Grafana 초기 비밀번호 파일은 데이터 볼륨을 처음 생성할 때 적용되므로, 이미 사용 중인 계정의 비밀번호는 파일 수정만으로 변경되지 않습니다.
+
+이번 구성은 로컬 개발 확인용입니다. 

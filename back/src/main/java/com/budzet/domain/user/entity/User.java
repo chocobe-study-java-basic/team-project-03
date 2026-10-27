@@ -56,4 +56,12 @@ public class User {
     public void clearRefreshToken() {
         this.refreshToken = null;
     }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    public void updateName(String name){
+        this.name = name;
+    }
 }

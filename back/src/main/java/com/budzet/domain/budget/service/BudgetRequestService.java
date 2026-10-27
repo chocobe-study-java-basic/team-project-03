@@ -129,16 +129,14 @@ public class BudgetRequestService {
         if(userRoomConnection.getAuthority() == Authority.MEMBER)
             throw new BusinessException(ErrorCode.OWNER_REQUIRED);
 
+        Room room = roomRepository.findByWithLock(roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+
         BudgetRequest budgetRequest = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND));
 
-        Room room = this.roomRepository.findById(roomId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
-
-
-
         BudgetRequestType status = budgetRequest.getStatus();
-        if(BudgetRequestType.APPROVE.equals(status) || BudgetRequestType.SETTLEMENT.equals(status))
+        if(!BudgetRequestType.REQUEST.equals(status))
             throw new BusinessException(ErrorCode.NOT_APPROVABLE);
         else if(room.getAvailableBudget() < budgetRequest.getRequestedAmount())
             throw new BusinessException(ErrorCode.BUDGET_EXCEEDED);
@@ -169,7 +167,7 @@ public class BudgetRequestService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND));
 
         BudgetRequestType status = budgetRequest.getStatus();
-        if(BudgetRequestType.REJECT.equals(status) || BudgetRequestType.SETTLEMENT.equals(status))
+        if(!BudgetRequestType.REQUEST.equals(status))
             throw new BusinessException(ErrorCode.NOT_REJECTABLE);
         else
             budgetRequest.rejectRequest(rejectReason);
@@ -188,11 +186,12 @@ public class BudgetRequestService {
 
         userInRoomCheck(new UserRoomConnectionId(user.getId(), roomId));
 
-        BudgetRequest budgetRequest = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND));
 
         Room room = this.roomRepository.findById(roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+
+        BudgetRequest budgetRequest = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND));
 
         BudgetRequestType status = budgetRequest.getStatus();
         if(BudgetRequestType.SETTLEMENT.equals(status))
