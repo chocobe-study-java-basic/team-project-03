@@ -51,13 +51,13 @@ class UserRoomConnectionControllerTest {
                 controller.getAuthority(roomId, userId);
 
         // then
-        assertThat(response.resultCode())
+        assertThat(response.getResultCode())
                 .isEqualTo(200);
 
-        assertThat(response.message())
+        assertThat(response.getMessage())
                 .isEqualTo("멤버 권한 조회 성공");
 
-        assertThat(response.data())
+        assertThat(response.getData())
                 .isEqualTo("MEMBER");
 
         verify(service)
@@ -86,13 +86,13 @@ class UserRoomConnectionControllerTest {
                 controller.getMembers(roomId);
 
         // then
-        assertThat(response.resultCode())
+        assertThat(response.getResultCode())
                 .isEqualTo(200);
 
-        assertThat(response.message())
+        assertThat(response.getMessage())
                 .isEqualTo("멤버 목록 조회 성공");
 
-        assertThat(response.data())
+        assertThat(response.getData())
                 .hasSize(2);
 
         verify(service)
@@ -119,13 +119,13 @@ class UserRoomConnectionControllerTest {
                 controller.kickMember(roomId, targetUserId);
 
         // then
-        assertThat(response.resultCode())
+        assertThat(response.getResultCode())
                 .isEqualTo(200);
 
-        assertThat(response.message())
+        assertThat(response.getMessage())
                 .isEqualTo("멤버 강퇴 성공");
 
-        assertThat(response.data())
+        assertThat(response.getData())
                 .isNull();
 
         verify(rq)
@@ -161,13 +161,13 @@ class UserRoomConnectionControllerTest {
                 controller.leaveRoom(roomId);
 
         // then
-        assertThat(response.resultCode())
+        assertThat(response.getResultCode())
                 .isEqualTo(200);
 
-        assertThat(response.message())
+        assertThat(response.getMessage())
                 .isEqualTo("모임 탈퇴 성공");
 
-        assertThat(response.data())
+        assertThat(response.getData())
                 .isNull();
 
         verify(rq)

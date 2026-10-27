@@ -1,7 +1,12 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '4.1.1'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.jetbrains.kotlin.jvm' version '2.4.21'
+    id 'org.jetbrains.kotlin.plugin.spring' version '2.4.21'
+    id 'org.jetbrains.kotlin.plugin.jpa' version '2.4.21'
 }
 
 group = 'com.budzet'
@@ -18,7 +23,15 @@ repositories {
     mavenCentral()
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_25
+    }
+}
+
 dependencies {
+    implementation 'org.jetbrains.kotlin:kotlin-reflect'
+    implementation 'tools.jackson.module:jackson-module-kotlin'
     implementation("io.jsonwebtoken:jjwt-api:0.13.0")
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0'
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
@@ -28,17 +41,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation("org.springframework.boot:spring-boot-starter-security")
     testImplementation("org.springframework.security:spring-security-test")
-    compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'com.mysql:mysql-connector-j'
-    annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
-    testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly 'com.h2database:h2'
-    testAnnotationProcessor 'org.projectlombok:lombok'
     implementation 'org.springframework.retry:spring-retry:2.0.13'
     implementation 'org.springframework:spring-aspects:6.2.12'
     testImplementation platform("org.testcontainers:testcontainers-bom:1.21.4")

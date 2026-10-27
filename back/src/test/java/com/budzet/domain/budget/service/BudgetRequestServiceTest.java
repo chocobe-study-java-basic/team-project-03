@@ -179,8 +179,8 @@ class BudgetRequestServiceTest {
         mockRoom();
         when(budgetRequestRepository.findDtoById(roomId, requestId))
                 .thenReturn(response);
-        when(response.userId()).thenReturn(userId);
-        when(response.status()).thenReturn(BudgetRequestType.REQUEST);
+        when(response.getUserId()).thenReturn(userId);
+        when(response.getStatus()).thenReturn(BudgetRequestType.REQUEST);
 
         budgetRequestService.deleteBudgetRequest(roomId, user, requestId);
 
@@ -194,7 +194,7 @@ class BudgetRequestServiceTest {
         mockRoom();
         when(budgetRequestRepository.findDtoById(roomId, requestId))
                 .thenReturn(response);
-        when(response.userId()).thenReturn(2L);
+        when(response.getUserId()).thenReturn(2L);
 
         assertThrows(
                 BusinessException.class,
@@ -210,9 +210,9 @@ class BudgetRequestServiceTest {
         mockRoom();
         when(budgetRequestRepository.findDtoById(roomId, requestId))
                 .thenReturn(response);
-        when(response.userId()).thenReturn(userId);
-        when(response.status()).thenReturn(BudgetRequestType.APPROVE);
-        when(response.requestedAmount()).thenReturn(300L);
+        when(response.getUserId()).thenReturn(userId);
+        when(response.getStatus()).thenReturn(BudgetRequestType.APPROVE);
+        when(response.getRequestedAmount()).thenReturn(300L);
 
         budgetRequestService.deleteBudgetRequest(roomId, user, requestId);
 

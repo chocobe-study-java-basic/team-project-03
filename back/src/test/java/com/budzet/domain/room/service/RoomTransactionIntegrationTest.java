@@ -8,6 +8,7 @@ import com.budzet.domain.room.entity.Authority;
 import com.budzet.domain.room.entity.Currency;
 import com.budzet.domain.room.entity.Room;
 import com.budzet.domain.room.entity.UserRoomConnection;
+import com.budzet.domain.room.entity.UserRoomConnectionId;
 import com.budzet.domain.room.repository.RoomRepository;
 import com.budzet.domain.room.repository.UserRoomConnectionRepository;
 import com.budzet.domain.user.entity.User;
@@ -16,6 +17,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import jakarta.persistence.EntityManager;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 // 모임(Room)에 대한 트랜잭션 통합 테스트
 @SpringBootTest
@@ -44,6 +48,9 @@ class RoomTransactionIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private final List<Long> roomIds = new ArrayList<>();
     private final List<Long> userIds = new ArrayList<>();
@@ -111,6 +118,63 @@ class RoomTransactionIntegrationTest {
         User preservedOwner = userRepository.findById(owner.getId()).orElseThrow();
         assertThat(preservedOwner.getEmail()).isEqualTo(owner.getEmail());
         assertThat(preservedOwner.getName()).isEqualTo(owner.getName());
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("모임 프록시·지연 컬렉션·복합키 조회·감사·변경 감지가 영속성 컨텍스트를 비운 뒤에도 동작한다.")
+    void roomAndConnectionPersistenceSupportsProxyCompositeKeyAndDirtyChecking() {
+        User owner = createUser();
+        Room room = Room.create("영속성 검증 모임", 10_000L, Currency.KRW);
+        assertThat(room.getId()).isNull();
+        assertThat(room.getCreatedAt()).isNull();
+        assertThat(room.getUserConnections()).isEmpty();
+        roomRepository.save(room);
+        roomIds.add(room.getId());
+        UserRoomConnection connection = UserRoomConnection.createOwner(owner, room);
+        assertThat(connection.getCreatedAt()).isNull();
+        // 복합키 엔티티는 merge될 수 있으므로 반환된 관리 객체를 확인한다.
+        UserRoomConnection savedConnection = connectionRepository.save(connection);
+        entityManager.flush();
+        assertThat(room.getCreatedAt()).isNotNull();
+        assertThat(savedConnection.getCreatedAt()).isNotNull();
+        Long roomId = room.getId();
+        Long ownerId = owner.getId();
+        entityManager.clear();
+
+        Room reference = entityManager.getReference(Room.class, roomId);
+        assertThat(Hibernate.isInitialized(reference)).isFalse();
+        assertThat(reference.getName()).isEqualTo("영속성 검증 모임");
+        assertThat(Hibernate.isInitialized(reference)).isTrue();
+        assertThat(Hibernate.isInitialized(reference.getUserConnections())).isFalse();
+        assertThat(reference.getUserConnections()).hasSize(1);
+        assertThat(Hibernate.isInitialized(reference.getUserConnections())).isTrue();
+        assertThat(Hibernate.isInitialized(reference.getInvites())).isFalse();
+        assertThat(Hibernate.isInitialized(reference.getBudgetRequests())).isFalse();
+        assertThat(Hibernate.isInitialized(reference.getBudgetChanges())).isFalse();
+
+        UserRoomConnectionId key = new UserRoomConnectionId(ownerId, roomId);
+        assertThat(key).isEqualTo(new UserRoomConnectionId(ownerId, roomId));
+        assertThat(key.hashCode()).isEqualTo(new UserRoomConnectionId(ownerId, roomId).hashCode());
+        UserRoomConnection reloaded = connectionRepository.findById(key).orElseThrow();
+        assertThat(reloaded.getUser().getId()).isEqualTo(ownerId);
+        assertThat(reloaded.getRoom().getId()).isEqualTo(roomId);
+        assertThat(reloaded.isJoined()).isTrue();
+        reference.changeName("변경된 모임");
+        reference.updateAvailableBudget(-1_000L);
+        reloaded.changeAuthority(Authority.OPERATOR);
+        entityManager.flush();
+        entityManager.clear();
+
+        Room changedRoom = roomRepository.findById(roomId).orElseThrow();
+        assertThat(changedRoom.getName()).isEqualTo("변경된 모임");
+        assertThat(changedRoom.getTotalBudget()).isEqualTo(10_000L);
+        assertThat(changedRoom.getAvailableBudget()).isEqualTo(9_000L);
+        UserRoomConnection changedConnection = connectionRepository.findById(
+                new UserRoomConnectionId(ownerId, roomId)).orElseThrow();
+        assertThat(changedConnection.getAuthority()).isEqualTo(Authority.OPERATOR);
+        assertThat(changedConnection.getCreatedAt()).isNotNull();
+        assertThat(changedConnection.isJoined()).isTrue();
     }
 
     private User createUser() {

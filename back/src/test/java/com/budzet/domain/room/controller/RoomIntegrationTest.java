@@ -134,7 +134,7 @@ class RoomIntegrationTest {
 
         // 테스트 자체에는 트랜잭션을 걸지 않아 요청 종료 후의 저장 결과를 확인한다.
         Room savedRoom = roomRepository.findById(roomId).orElseThrow();
-        assertThat(savedRoom.getName()).isEqualTo(request.name());
+        assertThat(savedRoom.getName()).isEqualTo(request.getName());
         assertThat(savedRoom.getTotalBudget()).isEqualTo(totalBudget);
         assertThat(savedRoom.getAvailableBudget()).isEqualTo(totalBudget);
         assertThat(savedRoom.getCurrency()).isEqualTo(Currency.KRW);
@@ -151,7 +151,7 @@ class RoomIntegrationTest {
 
         jsonPath("$.resultCode").value(201).match(result);
         jsonPath("$.message").value("모임이 생성되었습니다.").match(result);
-        jsonPath("$.data.name").value(request.name()).match(result);
+        jsonPath("$.data.name").value(request.getName()).match(result);
         jsonPath("$.data.totalBudget").value(totalBudget).match(result);
         jsonPath("$.data.availableBudget").value(totalBudget).match(result);
         jsonPath("$.data.currency").value("KRW").match(result);

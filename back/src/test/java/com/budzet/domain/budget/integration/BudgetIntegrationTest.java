@@ -95,7 +95,7 @@ class BudgetIntegrationTest {
         UserLoginResponse loginResponse =
                 userService.login(email, TEST_PASSWORD);
 
-        return new TestActor(user, loginResponse.accessToken());
+        return new TestActor(user, loginResponse.getAccessToken());
     }
 
     private Room createRoom(Long totalBudget) {

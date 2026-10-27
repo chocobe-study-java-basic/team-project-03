@@ -2,6 +2,8 @@
 package com.budzet.domain.budget.controller;
 
 import com.budzet.domain.budget.entity.BudgetRequest;
+import com.budzet.domain.budget.entity.BudgetRequestType;
+import com.budzet.domain.budget.dto.BudgetRequestResponse;
 import com.budzet.domain.budget.repository.BudgetRequestRepository;
 import com.budzet.domain.room.entity.Currency;
 import com.budzet.domain.room.entity.Room;
@@ -12,6 +14,8 @@ import com.budzet.domain.user.entity.User;
 import com.budzet.domain.user.service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,11 +33,15 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -62,6 +70,9 @@ class BudgetRequestIntegrationTest {
 
     @Autowired
     private BudgetRequestRepository budgetRequestRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private Room room;
 
@@ -198,6 +209,76 @@ class BudgetRequestIntegrationTest {
                                 "예산 신청 데이터가 저장되지 않았습니다."
                         )
                 );
+    }
+
+    @Test
+    @DisplayName("신청 프록시·지연 로딩·감사·변경 감지와 JPQL 응답 생성자가 재조회에서도 동작한다")
+    void requestPersistenceAndProjectionPreserveNullableFields() throws Exception {
+        Long requestId = createBudgetRequest();
+        entityManager.flush();
+        entityManager.clear();
+        BudgetRequest reference = entityManager.getReference(BudgetRequest.class, requestId);
+        assertFalse(Hibernate.isInitialized(reference));
+        assertEquals("테스트 예산 신청", reference.getReason());
+        assertTrue(Hibernate.isInitialized(reference));
+        assertFalse(Hibernate.isInitialized(reference.getRoom()));
+        assertFalse(Hibernate.isInitialized(reference.getUser()));
+        assertNotNull(reference.getCreatedAt());
+        assertNotNull(reference.getUpdatedAt());
+
+        BudgetRequestResponse projected = budgetRequestRepository.findDtoById(room.getId(), requestId);
+        assertNotNull(projected);
+        assertEquals(requestId, projected.getId());
+        assertEquals(room.getId(), projected.getRoomId());
+        assertEquals(reference.getUser().getId(), projected.getUserId());
+        assertEquals("테스트 신청자", projected.getUserName());
+        assertEquals("테스트 예산 신청", projected.getReason());
+        assertEquals(REQUESTED_AMOUNT, projected.getRequestedAmount());
+        assertEquals(BudgetRequestType.REQUEST, projected.getStatus());
+        assertNull(projected.getRejectReason());
+        assertNotNull(projected.getCreatedAt());
+        assertNotNull(projected.getUpdatedAt());
+        assertEquals(requestId, budgetRequestRepository.findDtoByRoomId(room.getId()).getFirst().getId());
+        assertNull(budgetRequestRepository.findDtoById(room.getId(), Long.MAX_VALUE));
+
+        reference.approveRequest();
+        entityManager.flush();
+        entityManager.clear();
+        BudgetRequest reloaded = budgetRequestRepository.findById(requestId).orElseThrow();
+        assertEquals(BudgetRequestType.APPROVE, reloaded.getStatus());
+        assertEquals("", reloaded.getRejectReason());
+        assertNotNull(reloaded.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("신청 금액 누락·null은 기존 requested_amount 필드 검증 오류로 처리되고 저장되지 않는다")
+    void missingAndNullAmountPreserveValidationContract() throws Exception {
+        long before = budgetRequestRepository.count();
+        for (String json : new String[]{"{\"reason\":\"사유\"}", "{\"reason\":\"사유\",\"requested_amount\":null}"}) {
+            mockMvc.perform(post("/rooms/{roomId}/budget/request", room.getId())
+                            .header("Authorization", "Bearer " + applicantToken)
+                            .contentType(MediaType.APPLICATION_JSON).content(json))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.data[*].field", hasItem("requested_amount")));
+        }
+        assertEquals(before, budgetRequestRepository.count());
+    }
+
+    @Test
+    @DisplayName("선택적 반려 사유는 누락·null 모두 허용하고 null로 저장한다")
+    void optionalRejectReasonPreservesMissingAndNull() throws Exception {
+        for (String json : new String[]{"{}", "{\"rejectReason\":null}"}) {
+            Long requestId = createBudgetRequest();
+            mockMvc.perform(patch("/rooms/{roomId}/budget/request/{requestId}/reject", room.getId(), requestId)
+                            .header("Authorization", "Bearer " + ownerToken)
+                            .contentType(MediaType.APPLICATION_JSON).content(json))
+                    .andExpect(status().isNoContent());
+            entityManager.flush();
+            entityManager.clear();
+            BudgetRequest reloaded = budgetRequestRepository.findById(requestId).orElseThrow();
+            assertEquals(BudgetRequestType.REJECT, reloaded.getStatus());
+            assertNull(reloaded.getRejectReason());
+        }
     }
 
     @Test

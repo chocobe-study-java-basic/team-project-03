@@ -74,9 +74,9 @@ class InviteServiceTest {
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.code()).isNotNull();
-        assertThat(response.code()).hasSize(10);
-        assertThat(response.expireAt()).isNotNull();
+        assertThat(response.getCode()).isNotNull();
+        assertThat(response.getCode()).hasSize(10);
+        assertThat(response.getExpireAt()).isNotNull();
 
         verify(inviteRepository)
                 .save(any(Invite.class));
@@ -139,9 +139,9 @@ class InviteServiceTest {
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.code())
+        assertThat(response.getCode())
                 .isEqualTo(token);
-        assertThat(response.expireAt())
+        assertThat(response.getExpireAt())
                 .isNotNull();
 
         verify(inviteRepository)
@@ -222,10 +222,10 @@ class InviteServiceTest {
 
         InviteJoinResponse response = inviteService.joinRoom(code, userId);
 
-        assertThat(response.userId()).isEqualTo(userId);
-        assertThat(response.roomId()).isEqualTo(roomId);
-        assertThat(response.authority()).isEqualTo(Authority.MEMBER.name());
-        assertThat(response.joined()).isTrue();
+        assertThat(response.getUserId()).isEqualTo(userId);
+        assertThat(response.getRoomId()).isEqualTo(roomId);
+        assertThat(response.getAuthority()).isEqualTo(Authority.MEMBER.name());
+        assertThat(response.getJoined()).isTrue();
         verify(roomRepository).findByWithLock(roomId);
         verify(userRoomConnectionRepository).save(any(UserRoomConnection.class));
     }
@@ -315,14 +315,14 @@ class InviteServiceTest {
 
         assertThat(result).hasSize(2);
 
-        assertThat(result.get(0).code())
+        assertThat(result.get(0).getCode())
                 .isEqualTo("ABC1234567");
-        assertThat(result.get(0).expireAt())
+        assertThat(result.get(0).getExpireAt())
                 .isEqualTo(expireAt1);
 
-        assertThat(result.get(1).code())
+        assertThat(result.get(1).getCode())
                 .isEqualTo("DEF1234567");
-        assertThat(result.get(1).expireAt())
+        assertThat(result.get(1).getExpireAt())
                 .isEqualTo(expireAt2);
 
         verify(inviteRepository).findAllByRoom_Id(roomId);
