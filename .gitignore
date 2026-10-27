@@ -15,3 +15,7 @@ agents
 
 # Local monitoring credentials
 monitoring/secrets/
+
+# Local SonarQube credentials and scanner output
+.env.sonar
+.scannerwork/
