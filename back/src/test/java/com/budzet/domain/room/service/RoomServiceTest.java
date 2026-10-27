@@ -79,7 +79,7 @@ class RoomServiceTest {
         assertThat(savedRoom.getTotalBudget()).isEqualTo(100_000L);
         assertThat(savedRoom.getAvailableBudget()).isEqualTo(100_000L);
         assertThat(savedRoom.getCurrency()).isEqualTo(Currency.KRW);
-        assertThat(response.availableBudget()).isEqualTo(100_000L);
+        assertThat(response.getAvailableBudget()).isEqualTo(100_000L);
 
         ArgumentCaptor<UserRoomConnection> connectionCaptor =
                 ArgumentCaptor.forClass(UserRoomConnection.class);
@@ -105,15 +105,15 @@ class RoomServiceTest {
         RoomListResponse response = roomService.getRooms(userId);
 
         verify(roomRepository).findAllJoinedRoomsByUserId(userId);
-        assertThat(response.rooms().size()).isEqualTo(2);
+        assertThat(response.getRooms().size()).isEqualTo(2);
 
-        assertThat(response.rooms().getFirst().name()).isEqualTo("사진동아리");
-        assertThat(response.rooms().getFirst().availableBudget()).isEqualTo(100_000L);
-        assertThat(response.rooms().getFirst().currency()).isEqualTo(Currency.KRW.toString());
+        assertThat(response.getRooms().getFirst().getName()).isEqualTo("사진동아리");
+        assertThat(response.getRooms().getFirst().getAvailableBudget()).isEqualTo(100_000L);
+        assertThat(response.getRooms().getFirst().getCurrency()).isEqualTo(Currency.KRW.toString());
 
-        assertThat(response.rooms().get(1).name()).isEqualTo("해외여행");
-        assertThat(response.rooms().get(1).availableBudget()).isEqualTo(500L);
-        assertThat(response.rooms().get(1).currency()).isEqualTo(Currency.USD.toString());
+        assertThat(response.getRooms().get(1).getName()).isEqualTo("해외여행");
+        assertThat(response.getRooms().get(1).getAvailableBudget()).isEqualTo(500L);
+        assertThat(response.getRooms().get(1).getCurrency()).isEqualTo(Currency.USD.toString());
     }
 
     @Test
@@ -126,7 +126,7 @@ class RoomServiceTest {
         RoomListResponse response = roomService.getRooms(userId);
 
         verify(roomRepository).findAllJoinedRoomsByUserId(userId);
-        assertTrue(response.rooms().isEmpty());
+        assertTrue(response.getRooms().isEmpty());
     }
 
     @Test
@@ -142,10 +142,10 @@ class RoomServiceTest {
 
         verify(roomRepository).findJoinedRoomByIdAndUserId(roomId, userId);
 
-        assertThat(response.name()).isEqualTo("사진동아리");
-        assertThat(response.totalBudget()).isEqualTo(100_000L);
-        assertThat(response.availableBudget()).isEqualTo(100_000L);
-        assertThat(response.currency()).isEqualTo("KRW");
+        assertThat(response.getName()).isEqualTo("사진동아리");
+        assertThat(response.getTotalBudget()).isEqualTo(100_000L);
+        assertThat(response.getAvailableBudget()).isEqualTo(100_000L);
+        assertThat(response.getCurrency()).isEqualTo("KRW");
     }
 
     @Test
@@ -189,10 +189,10 @@ class RoomServiceTest {
         verify(roomRepository).findById(roomId);
         verify(userRoomConnectionRepository).findByUser_IdAndRoom_Id(userId, roomId);
         assertThat(room.getName()).isEqualTo("수정된 이름");
-        assertThat(response.name()).isEqualTo("수정된 이름");
-        assertThat(response.totalBudget()).isEqualTo(100_000L);
-        assertThat(response.availableBudget()).isEqualTo(100_000L);
-        assertThat(response.currency()).isEqualTo("KRW");
+        assertThat(response.getName()).isEqualTo("수정된 이름");
+        assertThat(response.getTotalBudget()).isEqualTo(100_000L);
+        assertThat(response.getAvailableBudget()).isEqualTo(100_000L);
+        assertThat(response.getCurrency()).isEqualTo("KRW");
     }
 
     @ParameterizedTest(name = "{0} 권한은 모임 이름을 수정할 수 없다")

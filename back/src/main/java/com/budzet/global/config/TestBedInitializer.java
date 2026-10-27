@@ -91,7 +91,7 @@ public class TestBedInitializer {
                 new RoomCreateRequest(name, totalBudget, currency)
         );
 
-        return roomRepository.getReferenceById(response.id());
+        return roomRepository.getReferenceById(response.getId());
     }
 
     private void createMemberConnections(Map<Integer, User> users, Map<Integer, Room> rooms) {
