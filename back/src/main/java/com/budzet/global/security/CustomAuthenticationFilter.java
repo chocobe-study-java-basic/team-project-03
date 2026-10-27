@@ -32,6 +32,11 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
 
+        // 수집 경로는 전용 SecurityFilterChain에서 Basic 인증으로 처리한다.
+        if (path.equals("/actuator/prometheus") || path.startsWith("/actuator/prometheus/")) {
+            return true;
+        }
+
         if (path.startsWith("/swagger-ui") ||
                 path.startsWith("/v3/api-docs") ||
                 path.equals("/swagger-ui.html")) {
