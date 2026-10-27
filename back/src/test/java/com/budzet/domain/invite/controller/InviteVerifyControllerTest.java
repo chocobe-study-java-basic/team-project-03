@@ -37,9 +37,9 @@ class InviteVerifyControllerTest {
         ApiResponse<InviteResponse> response =
                 controller.verifyInvite(token);
 
-        assertThat(response.resultCode()).isEqualTo(200);
-        assertThat(response.message()).isEqualTo("초대 링크 검증 성공");
-        assertThat(response.data()).isEqualTo(inviteResponse);
+        assertThat(response.getResultCode()).isEqualTo(200);
+        assertThat(response.getMessage()).isEqualTo("초대 링크 검증 성공");
+        assertThat(response.getData()).isEqualTo(inviteResponse);
 
         verify(inviteService).verifyInvite(token);
     }

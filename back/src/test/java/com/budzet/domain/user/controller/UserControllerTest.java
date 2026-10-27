@@ -53,10 +53,10 @@ class UserControllerTest {
 
         assertNotNull(body);
         assertEquals(201, response.getStatusCode().value());
-        assertEquals(201, body.resultCode());
-        assertEquals("회원가입이 완료되었습니다.", body.message());
-        assertEquals(email, body.data().email());
-        assertEquals(name, body.data().name());
+        assertEquals(201, body.getResultCode());
+        assertEquals("회원가입이 완료되었습니다.", body.getMessage());
+        assertEquals(email, body.getData().email());
+        assertEquals(name, body.getData().name());
 
         verify(service).join(email, password, name);
     }
@@ -118,13 +118,13 @@ class UserControllerTest {
         assertNotNull(body);
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals(200, body.resultCode());
-        assertEquals("로그인에 성공했습니다.", body.message());
+        assertEquals(200, body.getResultCode());
+        assertEquals("로그인에 성공했습니다.", body.getMessage());
 
-        assertEquals(accessToken, body.data().accessToken());
-        assertEquals(refreshToken, body.data().refreshToken());
-        assertEquals(email, body.data().user().email());
-        assertEquals("user1", body.data().user().name());
+        assertEquals(accessToken, body.getData().accessToken());
+        assertEquals(refreshToken, body.getData().refreshToken());
+        assertEquals(email, body.getData().user().email());
+        assertEquals("user1", body.getData().user().name());
 
         verify(service).login(email, password);
 
@@ -189,17 +189,17 @@ class UserControllerTest {
         assertNotNull(body);
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals(200, body.resultCode());
-        assertEquals("토큰 재발급 성공", body.message());
+        assertEquals(200, body.getResultCode());
+        assertEquals("토큰 재발급 성공", body.getMessage());
 
         assertEquals(
                 newAccessToken,
-                body.data().accessToken()
+                body.getData().accessToken()
         );
 
         assertEquals(
                 newRefreshToken,
-                body.data().refreshToken()
+                body.getData().refreshToken()
         );
 
         verify(service)
@@ -269,9 +269,9 @@ class UserControllerTest {
 
         // then
         assertEquals(200, response.getStatusCode().value());
-        assertEquals(200, response.getBody().resultCode());
-        assertEquals("로그아웃되었습니다.", response.getBody().message());
-        assertNull(response.getBody().data());
+        assertEquals(200, response.getBody().getResultCode());
+        assertEquals("로그아웃되었습니다.", response.getBody().getMessage());
+        assertNull(response.getBody().getData());
 
         verify(rq).getActor();
         verify(service).logout(1L);
@@ -310,12 +310,12 @@ class UserControllerTest {
         ApiResponse<UserDto> body = response.getBody();
 
         assertNotNull(body);
-        assertEquals(200, body.resultCode());
-        assertEquals("내 정보 조회에 성공했습니다.", body.message());
+        assertEquals(200, body.getResultCode());
+        assertEquals("내 정보 조회에 성공했습니다.", body.getMessage());
 
-        assertEquals(1L, body.data().id());
-        assertEquals("user1@test.com", body.data().email());
-        assertEquals("user1", body.data().name());
+        assertEquals(1L, body.getData().id());
+        assertEquals("user1@test.com", body.getData().email());
+        assertEquals("user1", body.getData().name());
 
         verify(rq).getActor();
     }

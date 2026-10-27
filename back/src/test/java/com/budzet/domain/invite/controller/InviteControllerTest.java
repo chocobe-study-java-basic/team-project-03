@@ -61,13 +61,13 @@ class InviteControllerTest {
                 controller.createInvite(roomId);
 
         // then
-        assertThat(response.resultCode())
+        assertThat(response.getResultCode())
                 .isEqualTo(201);
 
-        assertThat(response.message())
+        assertThat(response.getMessage())
                 .isEqualTo("초대 링크 생성 성공");
 
-        assertThat(response.data())
+        assertThat(response.getData())
                 .isEqualTo(inviteResponse);
 
         verify(rq)
@@ -95,9 +95,9 @@ class InviteControllerTest {
 
         ApiResponse<InviteJoinResponse> response = controller.joinRoom(code);
 
-        assertThat(response.resultCode()).isEqualTo(201);
-        assertThat(response.message()).isEqualTo("모임에 참여하였습니다.");
-        assertThat(response.data()).isEqualTo(joinResponse);
+        assertThat(response.getResultCode()).isEqualTo(201);
+        assertThat(response.getMessage()).isEqualTo("모임에 참여하였습니다.");
+        assertThat(response.getData()).isEqualTo(joinResponse);
         verify(inviteService).joinRoom(code, userId);
     }
 
@@ -125,9 +125,9 @@ class InviteControllerTest {
         ApiResponse<List<InviteResponse>> response =
                 controller.getInvites(roomId);
 
-        assertThat(response.resultCode()).isEqualTo(200);
-        assertThat(response.message()).isEqualTo("초대 링크 조회 성공");
-        assertThat(response.data()).isEqualTo(inviteResponses);
+        assertThat(response.getResultCode()).isEqualTo(200);
+        assertThat(response.getMessage()).isEqualTo("초대 링크 조회 성공");
+        assertThat(response.getData()).isEqualTo(inviteResponses);
 
         verify(inviteService).getInvites(roomId, 2L);
     }

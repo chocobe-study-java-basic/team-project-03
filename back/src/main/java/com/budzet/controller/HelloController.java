@@ -21,7 +21,7 @@ public class HelloController {
                 "Hello, Budzet!");
 
         return ResponseEntity
-                .status(apiResponse.resultCode())
+                .status(apiResponse.getResultCode())
                 .body(apiResponse);
     }
 
