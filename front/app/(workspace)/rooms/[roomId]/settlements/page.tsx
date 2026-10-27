@@ -100,7 +100,7 @@ export default function SettlementPage() {
         useState("");
 
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
-    const receiptRequestId = useRef<number | null>(null);
+    const [receiptRequestId, setReceiptRequestId] = useState<number | null>(null);
     const [analyzingReceipt, setAnalyzingReceipt] = useState(false);
 
     const [description, setDescription] =
@@ -135,7 +135,6 @@ export default function SettlementPage() {
                 selectedRequestId,
         ) ?? approvedRequests[0];
 
-    useEffect(() => { setReceiptFile(null); receiptRequestId.current = null; }, [selectedRequest?.id]);
 
     const currency =
         budget?.currency ?? "KRW";
@@ -390,7 +389,7 @@ export default function SettlementPage() {
                         changedBudget: spent,
                         reason: description,
                     },
-                    receiptRequestId.current === selectedRequest.id ? receiptFile : null,
+                    receiptRequestId === selectedRequest.id ? receiptFile : null,
                 );
 
                 // 모달 닫기
@@ -398,7 +397,7 @@ export default function SettlementPage() {
 
                 // 입력값 초기화
                 setReceiptFile(null);
-                receiptRequestId.current = null;
+                setReceiptRequestId(null);
                 setSpentAmount("");
                 setDescription("");
 
@@ -587,6 +586,10 @@ export default function SettlementPage() {
                                                                 isSelected
                                                             }
                                                             onClick={() => {
+                                                                if (request.id !== selectedRequestId) {
+                                                                    setReceiptFile(null);
+                                                                    setReceiptRequestId(null);
+                                                                }
                                                                 setSelectedRequestId(
                                                                     request.id,
                                                                 );
@@ -701,7 +704,7 @@ export default function SettlementPage() {
                         key={selectedRequest.id} roomId={roomId} requestId={selectedRequest.id}
                         disabled={submitting} approvedAmount={approvedAmount} allowOcr={currency === "KRW"}
                         onApply={setSpentAmount} onBusy={setAnalyzingReceipt}
-                        onFile={file => { setReceiptFile(file); receiptRequestId.current = selectedRequest.id; }}
+                        onFile={file => { setReceiptFile(file); setReceiptRequestId(selectedRequest.id); }}
                     />}
 
                     {/* 실제 지출 금액 */}
@@ -1181,7 +1184,7 @@ export default function SettlementPage() {
                         </span>
                     </div>
 
-                    {receiptFile && receiptRequestId.current === selectedRequest?.id && <p className="rounded-xl bg-indigo-50 px-4 py-3 text-sm text-indigo-700">영수증 증빙 1장 첨부 · 정산과 함께 저장됩니다.</p>}
+                    {receiptFile && receiptRequestId === selectedRequest?.id && <p className="rounded-xl bg-indigo-50 px-4 py-3 text-sm text-indigo-700">영수증 증빙 1장 첨부 · 정산과 함께 저장됩니다.</p>}
 
                     {/* 지출 내용 */}
                     <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">

@@ -16,12 +16,9 @@ export default function ReceiptUploader({ roomId, requestId, disabled, approvedA
   const [error, setError] = useState("");
   const [applied, setApplied] = useState(false);
   const busy = useRef(false);
-  useEffect(() => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview);
+  }, [preview]);
   async function analyze() {
     if (!file || !consent || !allowOcr || disabled || busy.current) return;
     busy.current = true; setLoading(true); onBusy(true); setError(""); setResult(null); setApplied(false);
@@ -40,9 +37,10 @@ export default function ReceiptUploader({ roomId, requestId, disabled, approvedA
       setFile(null); onFile(null); setPreview("");
       if (!next) return;
       if (next.size > 1_000_000 || !["image/jpeg", "image/png"].includes(next.type)) { setError("1MB 이하의 JPEG 또는 PNG 이미지를 선택해 주세요."); e.target.value = ""; return; }
-      setFile(next); onFile(next);
+      setFile(next); onFile(next); setPreview(URL.createObjectURL(next));
     }}/>
-    {preview && <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-2">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={preview} alt="분석할 영수증 미리보기" className="mx-auto max-h-48 rounded-lg object-contain" /></div>}
+    {preview && <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-2">{/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={preview} alt="분석할 영수증 미리보기" className="mx-auto max-h-48 rounded-lg object-contain" /></div>}
     {!allowOcr && <p className="mt-3 text-xs text-zinc-500">이 통화는 사진 첨부만 지원해요. 금액은 직접 입력해 주세요.</p>}
     <label className="mt-3 flex items-start gap-2 text-xs leading-5 text-zinc-600"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} disabled={disabled || loading} className="mt-1"/>영수증 이미지가 외부 서비스 OCR.space로 전송됨을 확인했습니다. 카드번호 등 개인정보는 먼저 가려주세요.</label>
     <button type="button" onClick={analyze} disabled={!allowOcr || !file || !consent || loading || disabled} className="mt-3 w-full rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 ring-1 ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-50">{loading ? "영수증을 읽고 있어요…" : "결제 금액 인식하기"}</button>
