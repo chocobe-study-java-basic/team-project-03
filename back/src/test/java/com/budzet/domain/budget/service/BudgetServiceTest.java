@@ -82,12 +82,12 @@ class BudgetServiceTest {
 
         // then
         assertNotNull(result);
-        assertEquals(roomId, result.roomId());
-        assertEquals("동아리", result.roomName());
-        assertEquals(1000L, result.totalBudget());
-        assertEquals(800L, result.availableBudget());
-        assertEquals(200L, result.reserveBudget());
-        assertEquals("KRW", result.currency());
+        assertEquals(roomId, result.getRoomId());
+        assertEquals("동아리", result.getRoomName());
+        assertEquals(1000L, result.getTotalBudget());
+        assertEquals(800L, result.getAvailableBudget());
+        assertEquals(200L, result.getReserveBudget());
+        assertEquals("KRW", result.getCurrency());
     }
 
     @Test
@@ -264,17 +264,17 @@ class BudgetServiceTest {
 
         // then
         assertNotNull(result);
-        assertEquals(1, result.history().size());
+        assertEquals(1, result.getHistory().size());
 
         BudgetHistoryResponse.HistoryItem historyItem =
-                result.history().getFirst();
+                result.getHistory().getFirst();
 
-        assertEquals(10L, historyItem.id());
-        assertEquals(8000L, historyItem.changedBudget());
-        assertEquals("INCREASE", historyItem.type());
-        assertEquals("홍길동", historyItem.userName());
-        assertEquals("장비대여", historyItem.reason());
-        assertEquals(now, historyItem.processedAt());
+        assertEquals(10L, historyItem.getId());
+        assertEquals(8000L, historyItem.getChangedBudget());
+        assertEquals("INCREASE", historyItem.getType());
+        assertEquals("홍길동", historyItem.getUserName());
+        assertEquals("장비대여", historyItem.getReason());
+        assertEquals(now, historyItem.getProcessedAt());
     }
 
     @Test
@@ -306,7 +306,7 @@ class BudgetServiceTest {
 
         // then
         assertNotNull(result);
-        assertTrue(result.history().isEmpty());
+        assertTrue(result.getHistory().isEmpty());
     }
 
     @Test
@@ -336,7 +336,7 @@ class BudgetServiceTest {
         // 멤버 검증 실패 시 후속 조회는 실행되지 않아야 함
         verify(roomRepository, never()).findById(any());
         verify(budgetChangeRepository, never())
-                .findAllByRoomIdOrderByCreatedAtDesc(any());
+                .findAllByRoomIdOrderByCreatedAtDesc(anyLong());
     }
 
 
@@ -385,8 +385,8 @@ class BudgetServiceTest {
 
         // then
         assertNotNull(response);
-        assertEquals(roomId, response.roomId());
-        assertEquals(15000L, response.totalBudget());
+        assertEquals(roomId, response.getRoomId());
+        assertEquals(15000L, response.getTotalBudget());
 
         // 예산 변경 메서드 호출 검증
         verify(room).updateTotalBudget(

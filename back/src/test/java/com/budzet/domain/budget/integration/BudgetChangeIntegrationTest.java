@@ -4,6 +4,9 @@ import com.budzet.domain.budget.entity.BudgetChange;
 import com.budzet.domain.budget.entity.BudgetRequest;
 import com.budzet.domain.budget.entity.BudgetRequestType;
 import com.budzet.domain.budget.entity.BudgetType;
+import com.budzet.domain.budget.dto.BudgetChangeUpdateRequest;
+import jakarta.persistence.EntityManager;
+import org.hibernate.Hibernate;
 import com.budzet.domain.budget.repository.BudgetChangeRepository;
 import com.budzet.domain.budget.repository.BudgetRequestRepository;
 import com.budzet.domain.room.entity.Authority;
@@ -26,6 +29,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -71,6 +75,9 @@ class BudgetChangeIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private EntityManager entityManager;
 
     // ---------------------------------------------------------------------
     // 테스트 데이터 생성
@@ -301,6 +308,71 @@ class BudgetChangeIntegrationTest {
     // ---------------------------------------------------------------------
     // 인증 테스트
     // ---------------------------------------------------------------------
+
+    @Test
+    @Transactional
+    @DisplayName("변경 내역 프록시·지연 연관·감사와 정산/신청 변경 감지가 재조회에서도 동작한다")
+    void changePersistencePreservesProxyAssociationsAndDirtyChecking() {
+        SettlementFixture fixture = createSettledFixture();
+        Long changeId = fixture.budgetChange().getId();
+        Long requestId = fixture.request().getId();
+        entityManager.clear();
+        BudgetChange reference = entityManager.getReference(BudgetChange.class, changeId);
+        assertFalse(Hibernate.isInitialized(reference));
+        assertEquals(3000L, reference.getChangedBudget());
+        assertTrue(Hibernate.isInitialized(reference));
+        assertNotNull(reference.getCreatedAt());
+        assertFalse(Hibernate.isInitialized(reference.getRoom()));
+        assertFalse(Hibernate.isInitialized(reference.getUser()));
+        assertFalse(Hibernate.isInitialized(reference.getRequest()));
+        assertEquals(requestId, reference.getRequest().getId());
+        assertEquals("테스트 예산 신청", reference.getRequest().getReason());
+        assertTrue(Hibernate.isInitialized(reference.getRequest()));
+        User user = fixture.actor().user();
+        reference.updateChange(new BudgetChangeUpdateRequest(
+                6000L, 2500L, user.getName(), user.getEmail(), "변경 감지 확인"), user);
+        reference.getRequest().updateRequest(reference, user);
+        entityManager.flush();
+        entityManager.clear();
+        BudgetChange reloaded = budgetChangeRepository.findById(changeId).orElseThrow();
+        assertEquals(6000L, reloaded.getChangeBudget());
+        assertEquals(2500L, reloaded.getChangedBudget());
+        assertEquals("변경 감지 확인", reloaded.getReason());
+        BudgetRequest reloadedRequest = budgetRequestRepository.findById(requestId).orElseThrow();
+        assertEquals(6000L, reloadedRequest.getRequestedAmount());
+        assertEquals("변경 감지 확인", reloadedRequest.getReason());
+        assertEquals(BudgetRequestType.SETTLEMENT, reloadedRequest.getStatus());
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("신청 연결과 사유가 없는 관리자 변경 내역의 상세 JSON은 null 필드를 유지한다")
+    void unlinkedChangePreservesNullFieldsInDetailJson() throws Exception {
+        TestActor actor = createAuthenticatedUser();
+        Room room = createRoom(10000L);
+        createMembership(actor.user(), room, Authority.OWNER);
+        BudgetChange change = new BudgetChange(room, actor.user(), actor.user().getName(),
+                BudgetType.INCREASE, null, 1000L);
+        assertNull(change.getId());
+        assertNull(change.getCreatedAt());
+        assertNull(change.getRequest());
+        BudgetChange saved = budgetChangeRepository.saveAndFlush(change);
+        assertNotNull(saved.getCreatedAt());
+        Long changeId = saved.getId();
+        entityManager.clear();
+        assertNull(budgetChangeRepository.findById(changeId).orElseThrow().getRequest());
+        mockMvc.perform(authenticated(get("/rooms/{roomId}/budget/changes/{changeId}",
+                                room.getId(), changeId), actor))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.requestId").hasJsonPath())
+                .andExpect(jsonPath("$.data.requestId").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.data.requestCreatedAt").hasJsonPath())
+                .andExpect(jsonPath("$.data.requestCreatedAt").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.data.requestUpdatedAt").hasJsonPath())
+                .andExpect(jsonPath("$.data.requestUpdatedAt").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.data.reason").hasJsonPath())
+                .andExpect(jsonPath("$.data.reason").value(org.hamcrest.Matchers.nullValue()));
+    }
 
     @Test
     @DisplayName("정산 등록 API - Access Token이 없으면 401을 반환한다")
