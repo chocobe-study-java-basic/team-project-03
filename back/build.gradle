@@ -1,7 +1,13 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '4.1.1'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.jetbrains.kotlin.jvm' version '2.4.21'
+    id 'org.jetbrains.kotlin.plugin.spring' version '2.4.21'
+    id 'org.jetbrains.kotlin.plugin.jpa' version '2.4.21'
+    id 'org.jetbrains.kotlin.plugin.lombok' version '2.4.21'
 }
 
 group = 'com.budzet'
@@ -18,7 +24,16 @@ repositories {
     mavenCentral()
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_25
+        freeCompilerArgs.add('-Xannotation-default-target=param-property')
+    }
+}
+
 dependencies {
+    implementation 'org.jetbrains.kotlin:kotlin-reflect'
+    implementation 'tools.jackson.module:jackson-module-kotlin'
     implementation("io.jsonwebtoken:jjwt-api:0.13.0")
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0'
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
