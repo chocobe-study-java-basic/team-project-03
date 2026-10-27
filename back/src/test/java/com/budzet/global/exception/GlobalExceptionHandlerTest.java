@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.budzet.controller.HelloController;
 import com.budzet.global.api.ApiResponse;
 import jakarta.persistence.LockTimeoutException;
 import jakarta.validation.ConstraintViolationException;
@@ -25,6 +24,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.validation.FieldError;
@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.ObjectMapper;
 
-@WebMvcTest(controllers = {HelloController.class, GlobalExceptionHandlerTest.ExceptionTestController.class})
+@WebMvcTest(controllers = GlobalExceptionHandlerTest.ExceptionTestController.class)
 @Import(GlobalExceptionHandler.class)
 @ContextConfiguration(classes = GlobalExceptionHandlerTest.TestApplication.class)
 class GlobalExceptionHandlerTest {
@@ -49,7 +49,7 @@ class GlobalExceptionHandlerTest {
     @Test
     @DisplayName("정상 응답을 한다.")
     void successResponseUsesCommonFormat() throws Exception {
-        mockMvc.perform(get("/api/hello"))
+        mockMvc.perform(get("/test/success-with-data"))
                 .andExpect(status().isCreated())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.resultCode").value(201))
@@ -178,6 +178,13 @@ class GlobalExceptionHandlerTest {
         @Autowired
         private Validator validator;
 
+        @GetMapping("/test/success-with-data")
+        ResponseEntity<ApiResponse<String>> successWithData() {
+            ApiResponse<String> response = ApiResponse.success(
+                    HttpStatus.CREATED, "데이터를 생성하였습니다.", "Hello, Budzet!");
+            return ResponseEntity.status(response.getResultCode()).body(response);
+        }
+
         @GetMapping("/test/success-without-data")
         ApiResponse<Void> successWithoutData() {
             return ApiResponse.success(HttpStatus.OK, "처리되었습니다.", null);
@@ -235,7 +242,6 @@ class GlobalExceptionHandlerTest {
     @SpringBootConfiguration
     @EnableAutoConfiguration
     @Import({
-            HelloController.class,
             ExceptionTestController.class,
             GlobalExceptionHandler.class
     })
