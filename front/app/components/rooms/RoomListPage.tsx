@@ -1,5 +1,6 @@
 "use client";
 
+import BrandLogo from "../common/BrandLogo";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -202,13 +203,7 @@ export default function RoomListPage() {
                 href="/rooms"
                 className="flex items-center gap-3"
             >
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-xl font-bold text-white">
-              ▦
-            </span>
-
-              <span className="text-xl font-extrabold tracking-tight">
-              Budzet
-            </span>
+              <BrandLogo />
             </Link>
 
             <UserProfileMenu userName={userName} />

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import DefaultAvatar from "../DefaultAvatar";
 import { logout } from "../../../lib/api/userApi";
 
 type UserProfileMenuProps = {
@@ -73,9 +74,7 @@ export default function UserProfileMenu({
                 onClick={() => setIsOpen((previous) => !previous)}
                 className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 cursor-pointer"
             >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-base font-bold text-white">
-                    {displayName.charAt(0)}
-                </span>
+                <DefaultAvatar />
 
                 <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold text-zinc-800">

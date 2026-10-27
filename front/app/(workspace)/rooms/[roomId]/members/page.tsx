@@ -1,6 +1,8 @@
 "use client";
 
 
+import MemberRoleFilter from "@/app/components/rooms/MemberRoleFilter";
+import DefaultAvatar from "@/app/components/common/DefaultAvatar";
 import { notify } from "@/app/components/common/Feedback";
 import Link from "next/link";
 import ConfirmDialog from "@/app/components/common/ConfigmDialog/ConfirmDialog";
@@ -68,14 +70,16 @@ export default function MembersPage() {
     const currentMember = members?.find(member => member.userId === currentUserId);
     const isOwner = currentMember?.authority === "OWNER";
     const canManage = isOwner || currentMember?.authority === "OPERATOR";
-    const visibleMembers = members?.filter(member => member.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()) && (roleFilter === "ALL" || member.authority === roleFilter)) ?? [];
+    const matchingMembers = members?.filter(member => member.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())) ?? [];
+    const visibleMembers = matchingMembers.filter(member => roleFilter === "ALL" || member.authority === roleFilter);
+    const roleCounts = Object.fromEntries(["ALL", "OWNER", "OPERATOR", "MEMBER"].map(role => [role, matchingMembers.filter(member => role === "ALL" || member.authority === role).length]));
 
     const getAuthorityLabel = (authority: Member["authority"]) => {
         switch (authority) {
             case "OWNER":
                 return "방장";
             case "OPERATOR":
-                return "관리자";
+                return "운영자";
             case "MEMBER":
                 return "멤버";
         }
@@ -247,7 +251,7 @@ export default function MembersPage() {
             {/* 멤버 목록 */}
             {members !== null && !error && (
                 <>
-                    <div className="mb-5 flex flex-wrap gap-3"><label className="min-w-0 flex-1"><span className="sr-only">멤버 이름 검색</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="멤버 이름으로 검색" className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm" /></label><label><span className="sr-only">멤버 권한 필터</span><select value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm"><option value="ALL">모든 권한</option><option value="OWNER">방장</option><option value="OPERATOR">운영자</option><option value="MEMBER">멤버</option></select></label></div>
+                    <div className="mb-5 flex flex-wrap gap-3"><label className="min-w-0 flex-1"><span className="sr-only">멤버 이름 검색</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="멤버 이름으로 검색" className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm" /></label><MemberRoleFilter value={roleFilter} onChange={setRoleFilter} counts={roleCounts} /></div>
                     <p aria-live="polite" className="mb-3 text-xs text-zinc-500">{visibleMembers.length}명의 멤버</p>
                     {visibleMembers.length === 0 && <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center text-sm text-zinc-500">조건에 맞는 멤버가 없어요. 검색어나 권한 필터를 바꿔 보세요.</div>}
                     <div className="space-y-3">
@@ -257,9 +261,7 @@ export default function MembersPage() {
                                 className="relative flex items-center rounded-2xl border border-zinc-200 bg-white px-6 py-5"
                             >
                                 {/* 프로필 */}
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
-                                    {member.name.charAt(0)}
-                                </div>
+                                <DefaultAvatar className="h-11 w-11" />
 
                                 {/* 이름 / 권한 */}
                                 <div className="ml-4 min-w-0 flex-1">
