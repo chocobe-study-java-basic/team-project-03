@@ -1,5 +1,6 @@
 "use client";
 
+import BrandLogo from "../common/BrandLogo";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
@@ -146,7 +147,7 @@ function Sidebar({
 
     return (
         <aside className="workspace-sidebar flex h-full flex-col border-r border-zinc-200 bg-white px-3 py-5">
-            <Link href="/rooms" onClick={onNavigate} className="mb-8 flex items-center gap-2.5 px-3 text-lg font-extrabold tracking-tight"><span className="brand-mark">B</span>Budzet</Link>
+            <Link href="/rooms" onClick={onNavigate} className="mb-8 flex items-center gap-2.5 px-3 text-lg font-extrabold tracking-tight"><BrandLogo markClassName="h-9 w-9" /></Link>
             <Link
                 href="/rooms"
                 onClick={onNavigate}
