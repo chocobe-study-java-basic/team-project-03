@@ -11,6 +11,7 @@ import com.budzet.domain.room.repository.UserRoomConnectionRepository
 import com.budzet.domain.user.entity.User
 import com.budzet.global.exception.BusinessException
 import com.budzet.global.exception.ErrorCode
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -42,15 +43,17 @@ class BudgetRequestService(
 
     fun getBudgetRequest(roomId: Long, user: User, requestId: Long): BudgetRequestResponse {
         userInRoomCheck(UserRoomConnectionId(user.id, roomId))
-        return budgetRequestRepository.findDtoById(roomId, requestId) ?: throw BusinessException(ErrorCode.NOT_FOUND)
+        return budgetRequestRepository.findDtoById(roomId, requestId)
+            ?: throw BusinessException(ErrorCode.NOT_FOUND)
     }
 
     @Transactional
     fun deleteBudgetRequest(roomId: Long, user: User, requestId: Long) {
         userInRoomCheck(UserRoomConnectionId(user.id, roomId))
         val response = budgetRequestRepository.findDtoById(roomId, requestId)
-        val room = roomRepository.findById(roomId)
-            .orElseThrow { BusinessException(ErrorCode.ROOM_NOT_FOUND) }
+        val room = roomRepository.findByIdOrNull(roomId)
+            ?: throw BusinessException(ErrorCode.ROOM_NOT_FOUND)
+
         if (response == null) {
             throw BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND)
         } else if (response.userId != user.id) {
@@ -74,7 +77,7 @@ class BudgetRequestService(
         val room = roomRepository.findByWithLock(roomId)
             .orElseThrow { BusinessException(ErrorCode.ROOM_NOT_FOUND) }
         val request = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
-            .orElseThrow { BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND) }
+            ?: throw BusinessException(ErrorCode.ROOM_NOT_FOUND)
         if (request.status != BudgetRequestType.REQUEST) {
             throw BusinessException(ErrorCode.NOT_APPROVABLE)
         } else if (requireNotNull(room.availableBudget) < requireNotNull(request.requestedAmount)) {
@@ -94,7 +97,7 @@ class BudgetRequestService(
             throw BusinessException(ErrorCode.OWNER_REQUIRED)
         }
         val request = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
-            .orElseThrow { BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND) }
+            ?: throw BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND)
         if (request.status != BudgetRequestType.REQUEST) {
             throw BusinessException(ErrorCode.NOT_REJECTABLE)
         } else {
@@ -105,10 +108,10 @@ class BudgetRequestService(
     @Transactional
     fun modifyBudgetRequest(roomId: Long, user: User, requestId: Long, reason: String, requestedAmount: Long) {
         userInRoomCheck(UserRoomConnectionId(user.id, roomId))
-        val room = roomRepository.findById(roomId)
-            .orElseThrow { BusinessException(ErrorCode.ROOM_NOT_FOUND) }
+        val room = roomRepository.findByIdOrNull(roomId)
+            ?: throw BusinessException(ErrorCode.ROOM_NOT_FOUND)
         val request = budgetRequestRepository.findByIdAndRoomId(requestId, roomId)
-            .orElseThrow { BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND) }
+            ?: throw BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND)
         if (request.status == BudgetRequestType.SETTLEMENT) {
             throw BusinessException(ErrorCode.NOT_MODIFYABLE)
         } else if (requireNotNull(room.availableBudget) + requireNotNull(request.requestedAmount) < requestedAmount) {

@@ -29,5 +29,5 @@ interface BudgetRequestRepository : JpaRepository<BudgetRequest, Long> {
     fun findDtoById(@Param("roomId") roomId: Long, @Param("requestId") requestId: Long): BudgetRequestResponse?
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    fun findByIdAndRoomId(id: Long, roomId: Long): Optional<BudgetRequest>
+    fun findByIdAndRoomId(id: Long, roomId: Long): BudgetRequest?
 }
