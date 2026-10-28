@@ -205,6 +205,7 @@ export default function SettlementPage() {
                 setSelectedRequestId(
                     approved[0]?.id ?? 0,
                 );
+                setDescription(approved[0]?.reason ?? "");
             } catch (caughtError) {
                 setError(
                     getErrorMessage(
@@ -264,6 +265,7 @@ export default function SettlementPage() {
                 setSelectedRequestId(
                     approved[0]?.id ?? 0,
                 );
+                setDescription(approved[0]?.reason ?? "");
             } catch (caughtError) {
                 if (!cancelled) {
                     setError(
@@ -589,6 +591,7 @@ export default function SettlementPage() {
                                                                 if (request.id !== selectedRequestId) {
                                                                     setReceiptFile(null);
                                                                     setReceiptRequestId(null);
+                                                                    setDescription(request.reason ?? "");
                                                                 }
                                                                 setSelectedRequestId(
                                                                     request.id,
