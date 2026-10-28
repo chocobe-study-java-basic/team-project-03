@@ -22,13 +22,11 @@ import java.time.Duration
 class UserController(
     private val userService: UserService,
     private val rq: Rq,
-) {
     @Value("\${custom.jwt.access-expire-millis}")
-    private var accessExpireMillis: Long = 0
-
+    private val accessExpireMillis: Long,
     @Value("\${custom.jwt.refresh-expire-millis}")
-    private var refreshExpireMillis: Long = 0
-
+    private val refreshExpireMillis: Long
+) {
     @Operation(summary = "회원가입")
     @PostMapping("/join")
     fun join(@RequestBody @Valid reqBody: UserJoinRequest): ResponseEntity<ApiResponse<UserDto>> {
@@ -44,17 +42,21 @@ class UserController(
     @PostMapping("/login")
     fun login(@RequestBody @Valid reqBody: UserLoginRequest): ResponseEntity<ApiResponse<UserLoginResponse>> {
         val response = userService.login(requireNotNull(reqBody.email), requireNotNull(reqBody.password))
+
         rq.addCookie("accessToken", response.accessToken, Duration.ofMillis(accessExpireMillis))
         rq.addCookie("refreshToken", response.refreshToken, Duration.ofMillis(refreshExpireMillis))
+
         return ApiResponse.response(HttpStatus.OK, "로그인에 성공했습니다.", response)
     }
 
     @Operation(summary = "로그아웃", security = [SecurityRequirement(name = "BearerAuth")])
     @DeleteMapping("/logout")
     fun logout(): ResponseEntity<ApiResponse<Void>> {
-        userService.logout(requireNotNull(rq.getActor().id))
+        userService.logout(rq.getActor().id)
+
         rq.deleteCookie("accessToken")
         rq.deleteCookie("refreshToken")
+
         return ApiResponse.response(HttpStatus.OK, "로그아웃되었습니다.", null)
     }
 
@@ -62,6 +64,7 @@ class UserController(
     @PostMapping("/refresh")
     fun refresh(): ResponseEntity<ApiResponse<TokenRefreshResponse>> {
         val headerAuthorization = rq.getHeader("Authorization", "")
+
         val refreshToken = if (headerAuthorization.isNotBlank()) {
             if (!headerAuthorization.startsWith("Bearer ")) {
                 throw BusinessException(ErrorCode.INVALID_AUTHORIZATION_HEADER)
@@ -70,12 +73,15 @@ class UserController(
         } else {
             rq.getCookieValue("refreshToken", "")
         }
+
         if (refreshToken.isBlank()) {
             throw BusinessException(ErrorCode.UNAUTHORIZED)
         }
         val tokenResponse = userService.refresh(refreshToken)
+
         rq.addCookie("accessToken", tokenResponse.accessToken, Duration.ofMillis(accessExpireMillis))
         rq.addCookie("refreshToken", tokenResponse.refreshToken, Duration.ofMillis(refreshExpireMillis))
+
         return ApiResponse.response(HttpStatus.OK, "토큰 재발급 성공", tokenResponse)
     }
 
@@ -92,7 +98,7 @@ class UserController(
     @PatchMapping("/me/password")
     fun updatePassword(@RequestBody @Valid reqBody: UserPasswordUpdateRequest): ResponseEntity<ApiResponse<Void>> {
         userService.updatePassword(
-            requireNotNull(rq.getActor().id),
+            rq.getActor().id,
             requireNotNull(reqBody.currentPassword),
             requireNotNull(reqBody.newPassword),
         )
@@ -104,7 +110,7 @@ class UserController(
     @Operation(summary = "내 정보 수정", security = [SecurityRequirement(name = "BearerAuth")])
     @PatchMapping("/me")
     fun updateProfile(@RequestBody @Valid reqBody: UserProfileUpdateRequest): ResponseEntity<ApiResponse<UserDto>> {
-        val updatedUser = userService.updateProfile(requireNotNull(rq.getActor().id), requireNotNull(reqBody.name))
+        val updatedUser = userService.updateProfile(rq.getActor().id, requireNotNull(reqBody.name))
         return ApiResponse.response(HttpStatus.OK, "내 정보가 수정되었습니다.", UserDto(updatedUser))
     }
 }
