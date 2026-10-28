@@ -74,7 +74,7 @@ class CustomAuthenticationFilter(
         val payload = userService.accessPayloadOrNull(accessToken)
             ?: throw BusinessException(ErrorCode.INVALID_ACCESS_TOKEN)
         val id = (payload["id"] as Number).toLong()
-        val user = userService.findById(id).orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+        val user = userService.findByIdOrNull(id) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
         val securityUser = SecurityUser(user)
         val authentication = UsernamePasswordAuthenticationToken(securityUser, null, securityUser.authorities)
         SecurityContextHolder.getContext().authentication = authentication
