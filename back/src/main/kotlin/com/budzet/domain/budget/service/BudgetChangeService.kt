@@ -36,6 +36,7 @@ class BudgetChangeService(
         requestId: Long,
         createRequest: BudgetChangeCreateRequest,
     ): BudgetChangeCreateResponse {
+        val room = budgetService.findByRoomIdWithLock(roomId)
         val connection = budgetService.validateRoomMember(roomId, userId)
         val request = budgetRequestRepository.findById(requestId)
             .orElseThrow { BusinessException(ErrorCode.BUDGET_REQUEST_NOT_FOUND) }
@@ -50,7 +51,6 @@ class BudgetChangeService(
         if (request.status != BudgetRequestType.APPROVE) {
             throw BusinessException(ErrorCode.BUDGET_REQUEST_NOT_APPROVED)
         }
-        val room = budgetService.findByRoomIdWithLock(roomId)
         val budgetChange = BudgetChange(
             room, connection.user, connection.user.name, BudgetType.SETTLEMENT,
             createRequest.reason, request.requestedAmount, createRequest.changedBudget,

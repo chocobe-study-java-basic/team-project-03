@@ -67,6 +67,7 @@ class BudgetRequestServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(roomRepository.findByWithLock(roomId)).thenReturn(Optional.of(room));
         when(user.getId()).thenReturn(userId);
 
         lenient().when(userRoomConnectionRepository.existsById(
@@ -75,7 +76,7 @@ class BudgetRequestServiceTest {
     }
 
     private void mockRoom() {
-        when(roomRepository.findById(roomId))
+        when(roomRepository.findByWithLock(roomId))
                 .thenReturn(Optional.of(room));
     }
 
