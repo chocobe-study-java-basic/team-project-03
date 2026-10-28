@@ -40,9 +40,9 @@ class BudgetRequestService(
         return budgetRequestRepository.findDtoByRoomId(roomId)
     }
 
-    fun getBudgetRequest(roomId: Long, user: User, requestId: Long): BudgetRequestResponse? {
+    fun getBudgetRequest(roomId: Long, user: User, requestId: Long): BudgetRequestResponse {
         userInRoomCheck(UserRoomConnectionId(user.id, roomId))
-        return budgetRequestRepository.findDtoById(roomId, requestId)
+        return budgetRequestRepository.findDtoById(roomId, requestId) ?: throw BusinessException(ErrorCode.NOT_FOUND)
     }
 
     @Transactional
