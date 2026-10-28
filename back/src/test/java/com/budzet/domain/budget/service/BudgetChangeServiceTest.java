@@ -167,7 +167,7 @@ class BudgetChangeServiceTest {
                 exception.getMessage()
         );
 
-        verify(budgetService, never())
+        verify(budgetService)
                 .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
@@ -220,8 +220,8 @@ class BudgetChangeServiceTest {
                 exception.getMessage()
         );
 
-        // 모임이 일치하지 않으면 락 조회와 저장은 실행되지 않아야 함
-        verify(budgetService, never())
+        // 모임 잠금은 먼저 획득하지만, 모임이 일치하지 않으면 저장하지 않는다.
+        verify(budgetService)
                 .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
@@ -278,7 +278,7 @@ class BudgetChangeServiceTest {
                 exception.getMessage()
         );
 
-        verify(budgetService, never())
+        verify(budgetService)
                 .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
@@ -335,7 +335,7 @@ class BudgetChangeServiceTest {
                 exception.getMessage()
         );
 
-        verify(budgetService, never())
+        verify(budgetService)
                 .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
@@ -760,7 +760,7 @@ class BudgetChangeServiceTest {
 
         when(userRepository.findByNameAndEmail(
                 "홍길동", "test@test.com"
-        )).thenReturn(Optional.of(user));
+        )).thenReturn(user);
 
         when(user.getId()).thenReturn(targetUserId);
         when(user.getEmail()).thenReturn("test@test.com");
@@ -903,7 +903,7 @@ class BudgetChangeServiceTest {
 
         when(userRepository.findByNameAndEmail(
                 "없는유저", "wrong@test.com"
-        )).thenReturn(Optional.empty());
+        )).thenReturn(null);
 
         // when
         BusinessException exception = assertThrows(
@@ -961,7 +961,7 @@ class BudgetChangeServiceTest {
 
         when(userRepository.findByNameAndEmail(
                 "홍길동", "test@test.com"
-        )).thenReturn(Optional.of(user));
+        )).thenReturn(user);
 
         when(user.getId()).thenReturn(targetUserId);
 
@@ -1030,7 +1030,7 @@ class BudgetChangeServiceTest {
                 .thenReturn(Authority.OWNER);
 
         when(userRepository.findByNameAndEmail(anyString(), anyString()))
-                .thenReturn(Optional.of(user));
+                .thenReturn(user);
 
         when(user.getId()).thenReturn(targetUserId);
 
@@ -1097,7 +1097,7 @@ class BudgetChangeServiceTest {
 
         when(userRepository.findByNameAndEmail(
                 "홍길동", "test@test.com"
-        )).thenReturn(Optional.of(user));
+        )).thenReturn(user);
 
         when(user.getId()).thenReturn(targetUserId);
 
@@ -1172,7 +1172,7 @@ class BudgetChangeServiceTest {
                 .thenReturn(Authority.OWNER);
 
         when(userRepository.findByNameAndEmail(anyString(), anyString()))
-                .thenReturn(Optional.of(user));
+                .thenReturn(user);
 
         when(user.getId()).thenReturn(targetUserId);
 
@@ -1247,7 +1247,7 @@ class BudgetChangeServiceTest {
                 .thenReturn(Authority.OWNER);
 
         when(userRepository.findByNameAndEmail(anyString(), anyString()))
-                .thenReturn(Optional.of(user));
+                .thenReturn(user);
 
         when(user.getId()).thenReturn(targetUserId);
 

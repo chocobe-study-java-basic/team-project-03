@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id 'java'
+    id 'org.sonarqube' version '7.5.0.8588'
     id 'org.springframework.boot' version '4.1.1'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'org.jetbrains.kotlin.jvm' version '2.4.21'
@@ -60,4 +61,19 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
     systemProperty 'spring.profiles.active', 'test'
+}
+
+// Keep the initial migration snapshot separate from Java and reviewed Kotlin results.
+// Override with -Dsonar.projectKey=... when analyzing another snapshot.
+sonar {
+    properties {
+        property 'sonar.projectKey', 'budzet-kotlin-initial'
+        property 'sonar.host.url', 'http://localhost:9000'
+        property 'sonar.sourceEncoding', 'UTF-8'
+    }
+}
+
+// The scanner needs compiled production and test classes; it does not run tests.
+tasks.named('sonar') {
+    dependsOn tasks.named('testClasses')
 }

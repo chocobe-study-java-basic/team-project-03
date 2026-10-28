@@ -93,6 +93,44 @@ class InviteAuthorizationIntegrationTest {
         return "/rooms/" + room.getId() + "/" + resource.replace("{userId}", member.getId().toString());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"member", "operator", "outsider"})
+    @DisplayName("인증된 비OWNER의 초대 생성은 403을 반환하고 초대를 저장하지 않는다")
+    void nonOwnerCannotCreateInvite(String role) throws Exception {
+        String token = switch (role) {
+            case "operator" -> operatorToken;
+            case "outsider" -> outsiderToken;
+            default -> memberToken;
+        };
+        long count = inviteRepository.count();
+        mockMvc.perform(post(endpoint("invites")).header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.resultCode").value(403))
+                .andExpect(header().doesNotExist("Set-Cookie"));
+        assertEquals(count, inviteRepository.count());
+        mockMvc.perform(get("/users/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").exists());
+    }
+
+    @Test
+    @DisplayName("인증되지 않은 초대 생성은 401을 반환한다")
+    void anonymousCannotCreateInvite() throws Exception {
+        long count = inviteRepository.count();
+        mockMvc.perform(post(endpoint("invites"))).andExpect(status().isUnauthorized());
+        assertEquals(count, inviteRepository.count());
+    }
+
+    @Test
+    @DisplayName("OWNER는 초대 코드를 생성한다")
+    void ownerCanCreateInvite() throws Exception {
+        long count = inviteRepository.count();
+        mockMvc.perform(post(endpoint("invites")).header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().is2xxSuccessful())
+                .andExpect(jsonPath("$.data.code").isNotEmpty());
+        assertEquals(count + 1, inviteRepository.count());
+    }
+
     @Test
     @DisplayName("초대 생성·검증·가입의 기존 HTTP 상태와 JSON 필드를 유지한다")
     void inviteHttpContractPreservesStatusAndSerializedFields() throws Exception {
@@ -232,7 +270,7 @@ class InviteAuthorizationIntegrationTest {
                 .andExpect(jsonPath("$.data.roomId").value(room.getId()))
                 .andExpect(jsonPath("$.data.authority").value("MEMBER"));
         assertEquals(Authority.MEMBER, membershipRepository
-                .findByUser_IdAndRoom_Id(outsider.getId(), room.getId()).orElseThrow().getAuthority());
+                .findByUser_IdAndRoom_Id(outsider.getId(), room.getId()).getAuthority());
     }
 
     @Test
@@ -289,7 +327,7 @@ class InviteAuthorizationIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"authority\":\"OPERATOR\"}"))
                 .andExpect(status().is(role.equals("outsider") ? 404 : 403));
         assertEquals(Authority.MEMBER, membershipRepository
-                .findByUser_IdAndRoom_Id(member.getId(), room.getId()).orElseThrow().getAuthority());
+                .findByUser_IdAndRoom_Id(member.getId(), room.getId()).getAuthority());
     }
 
     @Test
@@ -301,13 +339,13 @@ class InviteAuthorizationIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON).content("{\"authority\":\"" + role + "\"}"))
                     .andExpect(status().isOk());
             assertEquals(Authority.valueOf(role), membershipRepository
-                    .findByUser_IdAndRoom_Id(member.getId(), room.getId()).orElseThrow().getAuthority());
+                    .findByUser_IdAndRoom_Id(member.getId(), room.getId()).getAuthority());
         }
         mockMvc.perform(patch(endpoint("members/{userId}/authority"))
                         .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"authority\":\"OWNER\"}"))
                 .andExpect(status().isBadRequest());
         assertEquals(Authority.MEMBER, membershipRepository
-                .findByUser_IdAndRoom_Id(member.getId(), room.getId()).orElseThrow().getAuthority());
+                .findByUser_IdAndRoom_Id(member.getId(), room.getId()).getAuthority());
     }
 }

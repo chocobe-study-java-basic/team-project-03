@@ -1,3 +1,4 @@
+import BrandLogo from "./BrandLogo";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -9,7 +10,7 @@ export default function AuthFrame({ children }: { children: ReactNode }) {
           href="/login"
           className="flex items-center gap-3 text-xl font-extrabold tracking-tight"
         >
-          <span className="brand-mark">B</span>Budzet
+          <BrandLogo />
           <span className="ml-1 text-xs font-medium text-slate-400">
             TEAM BUDGET
           </span>
@@ -50,7 +51,7 @@ export default function AuthFrame({ children }: { children: ReactNode }) {
           href="/login"
           className="mb-10 flex items-center gap-2 text-xl font-extrabold md:hidden"
         >
-          <span className="brand-mark">B</span>Budzet
+          <BrandLogo />
         </Link>
         <div className="w-full max-w-md">{children}</div>
         <p className="mt-8 text-center text-xs leading-6 text-zinc-500">

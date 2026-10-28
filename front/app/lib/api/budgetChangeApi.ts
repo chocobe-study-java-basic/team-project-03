@@ -68,7 +68,14 @@ export async function createBudgetChange(
     roomId: number,
     requestId: number,
     request: BudgetChangeCreateRequest,
+    receipt?: File | null,
 ) {
+    if (receipt) {
+        const body = new FormData();
+        body.append("file", receipt);
+        body.append("request", new Blob([JSON.stringify(request)], { type: "application/json" }));
+        return apiFetch<BudgetChangeCreateResponse>(`/rooms/${roomId}/budget/changes/${requestId}/with-receipt`, { method: "POST", body });
+    }
     return apiFetch<BudgetChangeCreateResponse>(
         `/rooms/${roomId}/budget/changes/${requestId}`,
         {

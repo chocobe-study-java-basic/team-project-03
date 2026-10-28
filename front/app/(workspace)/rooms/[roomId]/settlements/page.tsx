@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
+import ReceiptUploader from "@/app/components/budget/ReceiptUploader";
 import ConfirmDialog from "@/app/components/common/ConfigmDialog/ConfirmDialog";
 
 import {
@@ -98,6 +99,10 @@ export default function SettlementPage() {
     const [spentAmount, setSpentAmount] =
         useState("");
 
+    const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    const [receiptRequestId, setReceiptRequestId] = useState<number | null>(null);
+    const [analyzingReceipt, setAnalyzingReceipt] = useState(false);
+
     const [description, setDescription] =
         useState("");
 
@@ -129,6 +134,7 @@ export default function SettlementPage() {
                 request.id ===
                 selectedRequestId,
         ) ?? approvedRequests[0];
+
 
     const currency =
         budget?.currency ?? "KRW";
@@ -199,6 +205,7 @@ export default function SettlementPage() {
                 setSelectedRequestId(
                     approved[0]?.id ?? 0,
                 );
+                setDescription(approved[0]?.reason ?? "");
             } catch (caughtError) {
                 setError(
                     getErrorMessage(
@@ -258,6 +265,7 @@ export default function SettlementPage() {
                 setSelectedRequestId(
                     approved[0]?.id ?? 0,
                 );
+                setDescription(approved[0]?.reason ?? "");
             } catch (caughtError) {
                 if (!cancelled) {
                     setError(
@@ -339,7 +347,7 @@ export default function SettlementPage() {
     // 여기서는 API를 호출하지 않고
     // 확인 모달만 열어준다.
     const handleSubmit = () => {
-        if (!selectedRequest) {
+        if (analyzingReceipt || !selectedRequest) {
             return;
         }
 
@@ -383,12 +391,15 @@ export default function SettlementPage() {
                         changedBudget: spent,
                         reason: description,
                     },
+                    receiptRequestId === selectedRequest.id ? receiptFile : null,
                 );
 
                 // 모달 닫기
                 setIsConfirmDialogOpen(false);
 
                 // 입력값 초기화
+                setReceiptFile(null);
+                setReceiptRequestId(null);
                 setSpentAmount("");
                 setDescription("");
 
@@ -502,6 +513,7 @@ export default function SettlementPage() {
                                                 !open,
                                         )
                                     }
+                                    disabled={analyzingReceipt || submitting}
                                     aria-haspopup="listbox"
                                     aria-expanded={
                                         isRequestDropdownOpen
@@ -576,6 +588,11 @@ export default function SettlementPage() {
                                                                 isSelected
                                                             }
                                                             onClick={() => {
+                                                                if (request.id !== selectedRequestId) {
+                                                                    setReceiptFile(null);
+                                                                    setReceiptRequestId(null);
+                                                                    setDescription(request.reason ?? "");
+                                                                }
                                                                 setSelectedRequestId(
                                                                     request.id,
                                                                 );
@@ -685,6 +702,13 @@ export default function SettlementPage() {
                             </span>
                         </div>
                     </div>
+
+                    {selectedRequest && <ReceiptUploader
+                        key={selectedRequest.id} roomId={roomId} requestId={selectedRequest.id}
+                        disabled={submitting} approvedAmount={approvedAmount} allowOcr={currency === "KRW"}
+                        onApply={setSpentAmount} onBusy={setAnalyzingReceipt}
+                        onFile={file => { setReceiptFile(file); setReceiptRequestId(selectedRequest.id); }}
+                    />}
 
                     {/* 실제 지출 금액 */}
                     <div className="mt-4">
@@ -806,7 +830,7 @@ export default function SettlementPage() {
                     <button
                         type="submit"
                         disabled={
-                            submitting ||
+                            submitting || analyzingReceipt ||
                             !selectedRequest ||
                             approvedRequests.length ===
                             0
@@ -1162,6 +1186,8 @@ export default function SettlementPage() {
                                     : "−"}
                         </span>
                     </div>
+
+                    {receiptFile && receiptRequestId === selectedRequest?.id && <p className="rounded-xl bg-indigo-50 px-4 py-3 text-sm text-indigo-700">영수증 증빙 1장 첨부 · 정산과 함께 저장됩니다.</p>}
 
                     {/* 지출 내용 */}
                     <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">

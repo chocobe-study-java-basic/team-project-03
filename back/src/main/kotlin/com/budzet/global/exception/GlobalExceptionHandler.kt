@@ -14,6 +14,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException::class)
+    fun handleUploadTooLarge(): ResponseEntity<ApiResponse<Void>> = ResponseEntity.badRequest()
+        .body(ApiResponse(400, "파일이 너무 큽니다. 영수증은 1MB 이하로 선택해 주세요.", null))
+
+    @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException::class)
+    fun handleMissingFile(): ResponseEntity<ApiResponse<Void>> = ResponseEntity.badRequest()
+        .body(ApiResponse(400, "업로드할 파일을 선택해 주세요.", null))
+
 
     // 비즈니스 로직 에러 처리
     @ExceptionHandler(BusinessException::class)
