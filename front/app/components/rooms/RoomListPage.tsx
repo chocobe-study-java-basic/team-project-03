@@ -1,11 +1,13 @@
 "use client";
 
+import BrandLogo from "../common/BrandLogo";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { ApiError } from "../../lib/api/types";
 import { getRooms, type Room } from "../../lib/api/roomsApi";
 import { getMe } from "../../lib/api/userApi";
+import NotificationBell from "../common/NotificationBell";
 import UserProfileMenu from "../common/UserProfileMenu/UserProfileMenu";
 
 function formatBudget(amount: number, currency: string) {
@@ -202,16 +204,10 @@ export default function RoomListPage() {
                 href="/rooms"
                 className="flex items-center gap-3"
             >
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-xl font-bold text-white">
-              ▦
-            </span>
-
-              <span className="text-xl font-extrabold tracking-tight">
-              Budzet
-            </span>
+              <BrandLogo />
             </Link>
 
-            <UserProfileMenu userName={userName} />
+            <div className="flex items-center gap-3"><NotificationBell /><UserProfileMenu userName={userName} /></div>
           </div>
         </header>
 

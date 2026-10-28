@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import ReceiptEvidence from "@/app/components/budget/ReceiptEvidence";
 import { getMe } from "@/app/lib/api/userApi";
 import { getMemberAuthority } from "@/app/lib/api/memberApi";
 
@@ -693,6 +694,7 @@ export default function SettlementDetailPage() {
                             </div>
                         </div>
                     )}
+                {change && <ReceiptEvidence roomId={roomId} changeId={changeId} />}
             </div>
         </main>
     );

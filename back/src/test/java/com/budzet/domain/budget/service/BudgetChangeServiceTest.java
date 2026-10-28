@@ -167,7 +167,7 @@ class BudgetChangeServiceTest {
                 exception.getMessage()
         );
 
-        verify(budgetService, never())
+        verify(budgetService)
                 .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
@@ -220,8 +220,8 @@ class BudgetChangeServiceTest {
                 exception.getMessage()
         );
 
-        // 모임이 일치하지 않으면 락 조회와 저장은 실행되지 않아야 함
-        verify(budgetService, never())
+        // 모임 잠금은 먼저 획득하지만, 모임이 일치하지 않으면 저장하지 않는다.
+        verify(budgetService)
                 .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
@@ -278,7 +278,7 @@ class BudgetChangeServiceTest {
                 exception.getMessage()
         );
 
-        verify(budgetService, never())
+        verify(budgetService)
                 .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())
@@ -335,7 +335,7 @@ class BudgetChangeServiceTest {
                 exception.getMessage()
         );
 
-        verify(budgetService, never())
+        verify(budgetService)
                 .findByRoomIdWithLock(anyLong());
 
         verify(budgetChangeRepository, never())

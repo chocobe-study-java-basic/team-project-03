@@ -1,5 +1,6 @@
 package com.budzet.domain.budget.service;
 
+import com.budzet.domain.notification.service.NotificationService;
 import com.budzet.domain.budget.dto.BudgetRequestResponse;
 import com.budzet.domain.budget.entity.BudgetRequest;
 import com.budzet.domain.budget.entity.BudgetRequestType;
@@ -54,6 +55,9 @@ class BudgetRequestServiceTest {
     @Mock
     private UserRoomConnection userRoomConnection;
 
+    @Mock
+    private NotificationService notificationService;
+
     @InjectMocks
     private BudgetRequestService budgetRequestService;
 
@@ -63,6 +67,7 @@ class BudgetRequestServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(roomRepository.findByWithLock(roomId)).thenReturn(Optional.of(room));
         when(user.getId()).thenReturn(userId);
 
         lenient().when(userRoomConnectionRepository.existsById(
@@ -71,7 +76,7 @@ class BudgetRequestServiceTest {
     }
 
     private void mockRoom() {
-        when(roomRepository.findById(roomId))
+        when(roomRepository.findByWithLock(roomId))
                 .thenReturn(Optional.of(room));
     }
 

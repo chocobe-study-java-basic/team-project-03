@@ -1,5 +1,6 @@
 package com.budzet.domain.invite.service
 
+import com.budzet.domain.notification.service.NotificationService
 import com.budzet.domain.invite.dto.InviteJoinResponse
 import com.budzet.domain.invite.dto.InviteResponse
 import com.budzet.domain.invite.entity.Invite
@@ -26,14 +27,15 @@ class InviteService(
     private val roomRepository: RoomRepository,
     private val userRoomConnectionRepository: UserRoomConnectionRepository,
     private val userRepository: UserRepository,
+    private val notificationService: NotificationService,
 ) {
     @Transactional
     fun createInvite(roomId: Long, userId: Long): InviteResponse {
-        val room = roomRepository.findById(roomId).orElseThrow()
+        val room = roomRepository.findById(roomId).orElseThrow { BusinessException(ErrorCode.ROOM_NOT_FOUND) }
         val connection = userRoomConnectionRepository.findByUser_IdAndRoom_Id(userId, roomId)
-            .orElseThrow()
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_JOINED_ROOM) }
         if (connection.authority != Authority.OWNER) {
-            throw BusinessException(ErrorCode.UNAUTHORIZED)
+            throw BusinessException(ErrorCode.OWNER_REQUIRED)
         }
         val code = UUID.randomUUID().toString().replace("-", "").substring(0, 10)
         val expireAt = LocalDateTime.now().plusHours(1)
@@ -89,6 +91,7 @@ class InviteService(
         val user = userRepository.getReferenceById(userId)
         val connection = UserRoomConnection.createMember(user, room)
         val savedConnection = userRoomConnectionRepository.save(connection)
+        notificationService.notifyMemberJoined(savedConnection)
         return InviteJoinResponse.from(savedConnection)
     }
 }
