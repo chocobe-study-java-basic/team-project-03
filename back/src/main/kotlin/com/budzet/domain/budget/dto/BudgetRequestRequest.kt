@@ -8,5 +8,5 @@ data class BudgetRequestRequest(
     val reason: String = "",
     @field:NotNull(message = "신청예산은 필수입니다.")
     @field:Positive(message = "신청예산은 음수 또는 0이 될 수 없습니다.")
-    val requested_amount: Long = 0
+    val requested_amount: Long? = null
 )
