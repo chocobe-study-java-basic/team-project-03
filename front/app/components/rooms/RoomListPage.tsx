@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ApiError } from "../../lib/api/types";
 import { getRooms, type Room } from "../../lib/api/roomsApi";
 import { getMe } from "../../lib/api/userApi";
+import NotificationBell from "../common/NotificationBell";
 import UserProfileMenu from "../common/UserProfileMenu/UserProfileMenu";
 
 function formatBudget(amount: number, currency: string) {
@@ -211,7 +212,7 @@ export default function RoomListPage() {
             </span>
             </Link>
 
-            <UserProfileMenu userName={userName} />
+            <div className="flex items-center gap-3"><NotificationBell /><UserProfileMenu userName={userName} /></div>
           </div>
         </header>
 

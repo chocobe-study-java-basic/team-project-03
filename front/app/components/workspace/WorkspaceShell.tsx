@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { getMe } from "../../lib/api/userApi";
 import { getMembers, getRoom } from "../../lib/api/roomsApi";
 import { getBudgetRequests } from "../../lib/api/budgetRequestApi";
+import NotificationBell from "../common/NotificationBell";
 import UserProfileMenu from "../common/UserProfileMenu/UserProfileMenu";
 
 type IconName =
@@ -384,6 +385,8 @@ export default function WorkspaceShell({
             className="workspace-shell min-h-screen text-zinc-900"
             style={workspaceStyle}
         >
+            <div className="fixed right-4 top-3 z-30 md:right-10 md:top-8"><NotificationBell /></div>
+
             {/* PC 사이드바 */}
             <div className="fixed inset-y-0 left-0 z-20 hidden w-[var(--workspace-sidebar-width)] md:block">
                 <Sidebar
@@ -407,7 +410,7 @@ export default function WorkspaceShell({
                     <Icon name="menu" />
                 </button>
 
-                <span className="ml-3 truncate text-sm font-semibold">
+                <span className="ml-3 mr-12 truncate text-sm font-semibold">
                     {roomName}
                 </span>
             </header>
@@ -444,7 +447,7 @@ export default function WorkspaceShell({
             )}
 
             <main inert={isOpen || undefined} className="min-h-[calc(100vh-4rem)] px-5 py-6 md:ml-[var(--workspace-sidebar-width)] md:min-h-screen md:px-10 md:py-10 lg:px-14">
-                <div className="mb-8 hidden items-center justify-between border-b border-zinc-200 pb-5 md:flex"><p className="flex items-center gap-2 text-sm text-zinc-500"><span>{roomName}</span><span aria-hidden="true">/</span><span className="font-semibold text-zinc-800">{navigation.find(item => (pathname.endsWith(`/${item.path}`) || pathname.includes(`/${item.path}/`)))?.label ?? "모임 정보"}</span></p><span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-600">{userRole || "확인 중"}</span></div>
+                <div className="mb-8 hidden items-center justify-between pr-14 border-b border-zinc-200 pb-5 md:flex"><p className="flex items-center gap-2 text-sm text-zinc-500"><span>{roomName}</span><span aria-hidden="true">/</span><span className="font-semibold text-zinc-800">{navigation.find(item => (pathname.endsWith(`/${item.path}`) || pathname.includes(`/${item.path}/`)))?.label ?? "모임 정보"}</span></p><span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-600">{userRole || "확인 중"}</span></div>
                 {/* 일반 페이지는 그대로 표시하고, 제한 페이지는 권한 확인 후에만 표시 */}
                 {/* 확인 중·조회 실패·권한 없음 상태에서는 페이지 내부 API도 실행되지 않음 */}
                 {!restrictedPage ? children : !validRoomId ? (
