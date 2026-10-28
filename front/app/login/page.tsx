@@ -61,6 +61,7 @@ function LoginForm() {
           </div>
 
           {searchParams.get("registered") === "1" && <p role="status" className="mb-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">가입이 완료됐어요. 로그인해 시작하세요.</p>}
+          {searchParams.get("passwordChanged") === "1" && <p role="status" className="mb-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인해주세요.</p>}
           <form onSubmit={handleLogin} className="space-y-5">
 
             {/* 이메일 */}
