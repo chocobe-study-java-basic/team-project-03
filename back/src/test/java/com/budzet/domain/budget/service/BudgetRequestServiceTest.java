@@ -22,7 +22,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -93,7 +92,7 @@ class BudgetRequestServiceTest {
 
     private void mockBudgetRequest(BudgetRequestType status) {
         when(budgetRequestRepository.findByIdAndRoomId(requestId, roomId))
-                .thenReturn(Optional.of(budgetRequest));
+                .thenReturn(budgetRequest);
         when(budgetRequest.getStatus()).thenReturn(status);
     }
 
