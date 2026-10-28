@@ -29,11 +29,11 @@ class InviteService(
 ) {
     @Transactional
     fun createInvite(roomId: Long, userId: Long): InviteResponse {
-        val room = roomRepository.findById(roomId).orElseThrow()
+        val room = roomRepository.findById(roomId).orElseThrow { BusinessException(ErrorCode.ROOM_NOT_FOUND) }
         val connection = userRoomConnectionRepository.findByUser_IdAndRoom_Id(userId, roomId)
-            .orElseThrow()
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_JOINED_ROOM) }
         if (connection.authority != Authority.OWNER) {
-            throw BusinessException(ErrorCode.UNAUTHORIZED)
+            throw BusinessException(ErrorCode.OWNER_REQUIRED)
         }
         val code = UUID.randomUUID().toString().replace("-", "").substring(0, 10)
         val expireAt = LocalDateTime.now().plusHours(1)

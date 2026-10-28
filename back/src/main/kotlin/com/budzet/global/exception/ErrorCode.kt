@@ -6,6 +6,8 @@ enum class ErrorCode(
     val status: HttpStatus,
     val message: String,
 ) {
+    OCR_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "영수증을 인식하지 못했습니다. 잠시 후 다시 시도하거나 금액을 직접 입력해 주세요."),
+    OCR_LIMIT_REACHED(HttpStatus.TOO_MANY_REQUESTS, "영수증 인식 사용량이 초과됐거나 요청이 너무 빠릅니다. 나중에 다시 시도하거나 직접 입력해 주세요."),
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다."),
     PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다."),
     PASSWORD_UNCHANGED(HttpStatus.BAD_REQUEST, "새 비밀번호는 현재 비밀번호와 달라야 합니다."),
