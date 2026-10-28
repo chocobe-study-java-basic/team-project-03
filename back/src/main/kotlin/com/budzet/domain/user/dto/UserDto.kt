@@ -8,9 +8,7 @@ data class UserDto(
     val name: String,
 ) {
     constructor(user: User) : this(
-        id = checkNotNull(user.id) {
-            "저장된 회원만 UserDto로 변환할 수 있습니다."
-        },
+        id = user.id,
         email = user.email,
         name = user.name,
     )

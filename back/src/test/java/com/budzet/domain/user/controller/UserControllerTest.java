@@ -11,7 +11,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
 
@@ -28,7 +27,7 @@ class UserControllerTest {
         Rq rq = mock(Rq.class);
 
         UserController controller =
-                new UserController(service, rq);
+                new UserController(service, rq, 1000L, 2000L);
 
         String email = "user1@test.com";
         String password = "password123";
@@ -70,19 +69,7 @@ class UserControllerTest {
         Rq rq = mock(Rq.class);
 
         UserController controller =
-                new UserController(service, rq);
-
-        ReflectionTestUtils.setField(
-                controller,
-                "accessExpireMillis",
-                1000L
-        );
-
-        ReflectionTestUtils.setField(
-                controller,
-                "refreshExpireMillis",
-                2000L
-        );
+                new UserController(service, rq, 1000L, 2000L);
 
         String email = "user1@test.com";
         String password = "password123";
@@ -144,19 +131,7 @@ class UserControllerTest {
         Rq rq = mock(Rq.class);
 
         UserController controller =
-                new UserController(service, rq);
-
-        ReflectionTestUtils.setField(
-                controller,
-                "accessExpireMillis",
-                1000L
-        );
-
-        ReflectionTestUtils.setField(
-                controller,
-                "refreshExpireMillis",
-                2000L
-        );
+                new UserController(service, rq, 1000L, 2000L);
 
         String refreshToken = "oldRefreshToken";
         String newAccessToken = "newAccessToken";
@@ -221,7 +196,7 @@ class UserControllerTest {
         Rq rq = mock(Rq.class);
 
         UserController controller =
-                new UserController(service, rq);
+                new UserController(service, rq, 1000L, 2000L);
 
         when(rq.getHeader("Authorization", ""))
                 .thenReturn("");
@@ -253,7 +228,7 @@ class UserControllerTest {
         Rq rq = mock(Rq.class);
 
         UserController controller =
-                new UserController(service, rq);
+                new UserController(service, rq, 1000L, 2000L);
 
         User user = mock(User.class);
 
@@ -289,7 +264,7 @@ class UserControllerTest {
         Rq rq = mock(Rq.class);
 
         UserController controller =
-                new UserController(service, rq);
+                new UserController(service, rq, 1000L, 2000L);
 
         User user = mock(User.class);
 

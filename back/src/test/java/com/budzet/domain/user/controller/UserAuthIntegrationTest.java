@@ -90,7 +90,7 @@ class UserAuthIntegrationTest {
     @DisplayName("회원 엔티티의 프록시·지연 로딩·감사와 변경 감지를 유지한다")
     void userPersistenceSupportsProxyAuditingAndDirtyChecking() {
         User user = new User(email, "encodedPassword", "기존 이름");
-        assertNull(user.getId());
+        assertEquals(0L, user.getId());
         assertNull(user.getCreatedAt());
         assertNull(user.getModifiedAt());
         assertNull(user.getRefreshToken());
@@ -99,7 +99,7 @@ class UserAuthIntegrationTest {
         entityManager.persist(user);
         entityManager.flush();
         Long id = user.getId();
-        assertNotNull(id);
+        assertTrue(id > 0L);
         assertNotNull(user.getCreatedAt());
         assertNotNull(user.getModifiedAt());
         entityManager.clear();
