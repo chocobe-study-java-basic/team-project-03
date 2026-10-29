@@ -32,7 +32,7 @@ class BudgetRequestController(
         @Valid @RequestBody budgetRequestRequest: BudgetRequestRequest
     ): ResponseEntity<ApiResponse<Any>> {
         val user = rq.getActor()
-        budgetRequestService.budgetRequestRegistration(roomId, user, requireNotNull(budgetRequestRequest.reason), requireNotNull(budgetRequestRequest.requested_amount))
+        budgetRequestService.budgetRequestRegistration(roomId, user, budgetRequestRequest.reason, requireNotNull(budgetRequestRequest.requested_amount))
         return ApiResponse.response(HttpStatus.CREATED, "예산신청 등록성공", null)
     }
 
@@ -119,7 +119,7 @@ class BudgetRequestController(
         @Valid @RequestBody request: BudgetRequestModifyRequest
     ): ResponseEntity<ApiResponse<Any>> {
         val user = rq.getActor()
-        budgetRequestService.modifyBudgetRequest(roomId, user, requestId, requireNotNull(request.reason), requireNotNull(request.rerequestedAmount))
+        budgetRequestService.modifyBudgetRequest(roomId, user, requestId, request.reason, requireNotNull(request.rerequestedAmount))
         return ApiResponse.response(HttpStatus.NO_CONTENT, "예산신청 수정성공", null)
     }
 

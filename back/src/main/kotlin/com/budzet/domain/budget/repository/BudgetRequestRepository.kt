@@ -43,5 +43,5 @@ interface BudgetRequestRepository : JpaRepository<BudgetRequest, Long> {
     ): List<BudgetRequest>
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    fun findByIdAndRoomId(id: Long, roomId: Long): Optional<BudgetRequest>
+    fun findByIdAndRoomId(id: Long, roomId: Long): BudgetRequest?
 }
