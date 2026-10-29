@@ -10,6 +10,7 @@ const REFRESH_MARGIN_MS = 1000 * 60 * 5 // 5분
 let refreshPromise: Promise<void> | null = null;
 let stopped = false;
 let loggingOut = false;
+let passwordChangePromise: Promise<void> | null = null;
 
 export function isLoggingOut() {
   return loggingOut;
@@ -77,6 +78,8 @@ async function refreshIfNeeded(refresh: RefreshRequest) {
 
 export async function ensureFreshAccessToken(refresh: RefreshRequest) {
   if (typeof window === "undefined") return;
+  // 비밀번호 변경 중에는 갱신을 기다리고, 실패했다면 기존 인증을 계속 사용
+  await passwordChangePromise?.catch(() => undefined);
   if (loggingOut || isStopped()) throw new ApiError("로그인 후 이용해주세요.", 401);
 
   if (!refreshPromise) {
@@ -95,6 +98,7 @@ export function performLogout(refresh: RefreshRequest, request: () => Promise<vo
   if (logoutPromise) return logoutPromise;
   loggingOut = true;
   logoutPromise = (async () => {
+    await passwordChangePromise?.catch(() => undefined);
     // 먼저 시작된 토큰 갱신이 있다면 끝날 때까지 기다림
     await refreshPromise;
     await withAuthLock(async () => {
@@ -108,4 +112,23 @@ export function performLogout(refresh: RefreshRequest, request: () => Promise<vo
     logoutPromise = null;
   });
   return logoutPromise;
+}
+
+
+export function performPasswordChange(refresh: RefreshRequest, request: () => Promise<void>) {
+  if (passwordChangePromise) return passwordChangePromise;
+  if (loggingOut) return Promise.reject(new ApiError("로그아웃 중입니다.", 401));
+
+  passwordChangePromise = (async () => {
+    await refreshPromise;
+    await withAuthLock(async () => {
+      await refreshIfNeeded(refresh);
+      // 검증 실패 시에는 인증 상태를 유지하고 성공했을 때만 갱신을 종료
+      await request();
+      stopAuthentication();
+    });
+  })().finally(() => {
+    passwordChangePromise = null;
+  });
+  return passwordChangePromise;
 }
