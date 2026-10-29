@@ -90,7 +90,7 @@ class InviteAuthorizationIntegrationTest {
     }
 
     private String endpoint(String resource) {
-        return "/rooms/" + room.getId() + "/" + resource.replace("{userId}", member.getId().toString());
+        return "/rooms/" + room.getId() + "/" + resource.replace("{userId}", String.valueOf(member.getId()));
     }
 
     @ParameterizedTest
@@ -255,7 +255,7 @@ class InviteAuthorizationIntegrationTest {
         mockMvc.perform(get(endpoint("members")).header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(3))
-                .andExpect(jsonPath("$.data[*].userId", org.hamcrest.Matchers.hasItem(member.getId().intValue())));
+                .andExpect(jsonPath("$.data[*].userId", org.hamcrest.Matchers.hasItem(Math.toIntExact(member.getId()))));
         mockMvc.perform(get(endpoint("members/{userId}/authority")).header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value("MEMBER"));

@@ -79,8 +79,8 @@ class CustomAuthenticationFilterTest {
                         "name", "홍길동"
                 ));
 
-        when(userService.findById(1L))
-                .thenReturn(Optional.of(user));
+        when(userService.findByIdOrNull(1L))
+                .thenReturn(user);
 
         // when
         filter.doFilter(request, response, filterChain);
@@ -129,9 +129,8 @@ class CustomAuthenticationFilterTest {
                         "name", "홍길동"
                 ));
 
-        when(userService.findById(1L))
-                .thenReturn(Optional.of(user));
-
+        when(userService.findByIdOrNull(1L))
+                .thenReturn(user);
         // when
         filter.doFilter(request, response, filterChain);
 

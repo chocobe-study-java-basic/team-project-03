@@ -82,7 +82,10 @@ class UserAuthIntegrationTest {
     @AfterEach
     void tearDown() {
         // 다른 테스트의 데이터는 건드리지 않고 이 테스트에서 만든 회원만 정리한다.
-        userRepository.findByEmail(email).ifPresent(userRepository::delete);
+        User user = userRepository.findByEmail(email);
+        if (user != null) {
+            userRepository.delete(user);
+        }
     }
 
     @Test
@@ -90,7 +93,7 @@ class UserAuthIntegrationTest {
     @DisplayName("회원 엔티티의 프록시·지연 로딩·감사와 변경 감지를 유지한다")
     void userPersistenceSupportsProxyAuditingAndDirtyChecking() {
         User user = new User(email, "encodedPassword", "기존 이름");
-        assertNull(user.getId());
+        assertEquals(0L, user.getId());
         assertNull(user.getCreatedAt());
         assertNull(user.getModifiedAt());
         assertNull(user.getRefreshToken());
@@ -99,7 +102,7 @@ class UserAuthIntegrationTest {
         entityManager.persist(user);
         entityManager.flush();
         Long id = user.getId();
-        assertNotNull(id);
+        assertTrue(id > 0L);
         assertNotNull(user.getCreatedAt());
         assertNotNull(user.getModifiedAt());
         entityManager.clear();
@@ -150,7 +153,7 @@ class UserAuthIntegrationTest {
                 .andReturn();
 
         // then: 요청의 트랜잭션이 끝난 뒤 DB에서 다시 조회한다.
-        User savedUser = userRepository.findByEmail(email).orElseThrow();
+        User savedUser = storedMember();
 
         assertNotNull(savedUser.getId());
         assertEquals(email, savedUser.getEmail());
@@ -197,7 +200,7 @@ class UserAuthIntegrationTest {
         jsonPath("$.data.refreshToken").value(refreshCookie.getValue()).match(result);
 
         // 로그인 요청의 트랜잭션이 끝난 뒤 DB를 다시 조회한다.
-        User savedUser = userRepository.findByEmail(email).orElseThrow();
+        User savedUser = storedMember();
         assertEquals(refreshCookie.getValue(), savedUser.getRefreshToken());
         assertEquals(user.getPassword(), savedUser.getPassword());
     }
@@ -549,7 +552,7 @@ class UserAuthIntegrationTest {
                 .andExpect(header().doesNotExist("Set-Cookie"));
 
         assertEquals(count, userRepository.count());
-        assertTrue(userRepository.findByEmail(email).isEmpty());
+        assertNull(userRepository.findByEmail(email));
     }
 
     static Stream<Arguments> invalidJoinFields() {
@@ -646,7 +649,7 @@ class UserAuthIntegrationTest {
                 .andExpect(jsonPath("$.message").value("존재하지 않는 회원입니다."))
                 .andExpect(header().doesNotExist("Set-Cookie"));
         assertEquals(count, userRepository.count());
-        assertTrue(userRepository.findByEmail(email).isEmpty());
+        assertNull(userRepository.findByEmail(email));
     }
 
     private void assertAuthenticationCookie(Cookie cookie, long expireMillis) {
@@ -664,7 +667,9 @@ class UserAuthIntegrationTest {
     }
 
     private User storedMember() {
-        return userRepository.findByEmail(email).orElseThrow();
+        User user = userRepository.findByEmail(email);
+        assertNotNull(user, "테스트 회원이 존재해야 합니다.");
+        return user;
     }
 
     private MvcResult login() throws Exception {

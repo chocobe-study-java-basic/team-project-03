@@ -46,7 +46,8 @@ class SupportConfigurationIntegrationTest {
     void startupSeedsUsersRoomsAndMemberships() {
         assertThat(users.count()).isEqualTo(21);
         for (int number = 1; number <= 21; number++) {
-            var user = users.findByEmail("user" + number + "@example.com").orElseThrow();
+            var user = users.findByEmail("user" + number + "@example.com");
+            assertThat(user).isNotNull();
             assertThat(user.getName()).isEqualTo("테스트 사용자 " + number);
             assertThat(passwordEncoder.matches("12341234", user.getPassword())).isTrue();
         }
@@ -74,7 +75,8 @@ class SupportConfigurationIntegrationTest {
 
     @Test
     void reseedingWithExistingDataPreservesIdsAndUserChanges() {
-        var user = users.findByEmail("user1@example.com").orElseThrow();
+        var user = users.findByEmail("user1@example.com");
+        assertThat(user).isNotNull();
         user.updateName("수정한 사용자");
         users.flush();
         var userIds = users.findAll().stream().map(value -> value.getId()).toList();
@@ -83,7 +85,9 @@ class SupportConfigurationIntegrationTest {
         assertThat(users.findAll()).extracting(value -> value.getId()).containsExactlyInAnyOrderElementsOf(userIds);
         assertThat(rooms.findAll()).extracting(value -> value.getId()).containsExactlyInAnyOrderElementsOf(roomIds);
         assertThat(connections.count()).isEqualTo(18);
-        assertThat(users.findByEmail("user1@example.com").orElseThrow().getName()).isEqualTo("수정한 사용자");
+        var updatedUser = users.findByEmail("user1@example.com");
+        assertThat(updatedUser).isNotNull();
+        assertThat(updatedUser.getName()).isEqualTo("수정한 사용자");
     }
 
     @Test
