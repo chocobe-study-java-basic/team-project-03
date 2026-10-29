@@ -12,7 +12,7 @@ import java.time.LocalDateTime
 open class User(email: String, password: String, name: String) {
     @field:Id
     @field:GeneratedValue(strategy = GenerationType.IDENTITY)
-    open var id: Long? = null
+    open var id: Long = 0
         protected set
 
     @field:Column(unique = true, length = 50)

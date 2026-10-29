@@ -16,18 +16,11 @@ class AuthTokenServiceTest {
 
     @BeforeEach
     void setUp() {
-        authTokenService = new AuthTokenService();
-
-        ReflectionTestUtils.setField(
-                authTokenService,
-                "accessSecret",
-                "test-secret-key-for-budzet-jwt-authentication-123456789"
-        );
-
-        ReflectionTestUtils.setField(
-                authTokenService,
-                "accessExpireMillis",
-                3600L
+        authTokenService = new AuthTokenService(
+                "test-access-secret-for-budzet-0123456789",
+                3_600_000L,
+                "test-refresh-secret-for-budzet-0123456789",
+                604_800_000L
         );
     }
 

@@ -103,7 +103,7 @@ class UserServiceTest {
         );
 
         when(userRepository.findByEmail(email))
-                .thenReturn(Optional.of(user));
+                .thenReturn(user);
 
         when(passwordEncoder.matches(password, encodedPassword))
                 .thenReturn(true);

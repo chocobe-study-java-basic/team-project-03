@@ -19,14 +19,13 @@ class CustomAuthenticationFilter(
 ) : OncePerRequestFilter() {
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {
         val path = request.requestURI
+
         // 수집 경로는 전용 SecurityFilterChain에서 Basic 인증으로 처리한다.
-        if (path == "/actuator/prometheus" || path.startsWith("/actuator/prometheus/")) {
-            return true
-        }
-        if (path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs") || path == "/swagger-ui.html") {
-            return true
-        }
-        return path in listOf("/users/join", "/users/login", "/users/refresh")
+        return path in PUBLIC_PATHS ||
+                path == "/actuator/prometheus" ||
+                path.startsWith("/actuator/prometheus/") ||
+                path.startsWith("/swagger-ui") ||
+                path.startsWith("/v3/api-docs")
     }
 
     override fun doFilterInternal(
@@ -39,16 +38,17 @@ class CustomAuthenticationFilter(
             authenticate(request, response, filterChain)
         } catch (e: BusinessException) {
             val errorCode = e.errorCode
+
             response.contentType = "application/json; charset=UTF-8"
             response.status = errorCode.status.value()
             response.writer.write(
                 """
                 {
-                    "resultCode": "%s",
-                    "errorCode": "%s",
-                    "message": "%s"
+                    "resultCode": "${errorCode.status.value()}",
+                    "errorCode": "${errorCode.name}",
+                    "message": "${errorCode.message}"
                 }
-                """.trimIndent().format(errorCode.status.value(), errorCode.name, errorCode.message),
+                """.trimIndent(),
             )
         }
     }
@@ -59,6 +59,7 @@ class CustomAuthenticationFilter(
         filterChain: FilterChain,
     ) {
         val headerAuthorization = rq.getHeader("Authorization", "")
+
         val accessToken = if (headerAuthorization.isNotBlank()) {
             if (!headerAuthorization.startsWith("Bearer ")) {
                 throw BusinessException(ErrorCode.INVALID_AUTHORIZATION_HEADER)
@@ -67,17 +68,37 @@ class CustomAuthenticationFilter(
         } else {
             rq.getCookieValue("accessToken", "")
         }
+
         if (accessToken.isBlank()) {
             filterChain.doFilter(request, response)
             return
         }
+
         val payload = userService.accessPayloadOrNull(accessToken)
             ?: throw BusinessException(ErrorCode.INVALID_ACCESS_TOKEN)
-        val id = (payload["id"] as Number).toLong()
-        val user = userService.findById(id).orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+
+        val id = (payload["id"] as? Number)?.toLong()
+            ?: throw BusinessException(ErrorCode.INVALID_ACCESS_TOKEN)
+
+        val user = userService.findByIdOrNull(id)
+            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+
         val securityUser = SecurityUser(user)
-        val authentication = UsernamePasswordAuthenticationToken(securityUser, null, securityUser.authorities)
+        val authentication = UsernamePasswordAuthenticationToken(
+            securityUser,
+            null,
+            securityUser.authorities,
+        )
+
         SecurityContextHolder.getContext().authentication = authentication
         filterChain.doFilter(request, response)
+    }
+
+    companion object {
+        private val PUBLIC_PATHS = setOf(
+            "/users/join",
+            "/users/login",
+            "/users/refresh",
+        )
     }
 }

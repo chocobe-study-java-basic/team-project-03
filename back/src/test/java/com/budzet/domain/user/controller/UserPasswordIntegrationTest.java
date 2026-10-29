@@ -52,7 +52,10 @@ class UserPasswordIntegrationTest {
 
     @AfterEach
     void tearDown() {
-        userRepository.findByEmail(email).ifPresent(userRepository::delete);
+        User user = userRepository.findByEmail(email);
+        if (user != null) {
+            userRepository.delete(user);
+        }
     }
 
     @ParameterizedTest
@@ -204,7 +207,9 @@ class UserPasswordIntegrationTest {
     }
 
     private User storedMember() {
-        return userRepository.findByEmail(email).orElseThrow();
+        User user = userRepository.findByEmail(email);
+        assertNotNull(user, "테스트 회원이 존재해야 합니다.");
+        return user;
     }
 
     private void assertUnchanged(User before) {
